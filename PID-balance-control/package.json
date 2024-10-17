@@ -1,0 +1,16 @@
+{
+  "name": "pid-balance-control",
+  "version": "1.0.0",
+  "description": "A Node.js application for PID control of a self-balancing robot using MPU6050.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "onoff": "^6.0.3",
+    "mpu6050": "^0.1.4",
+    "i2c-bus": "^5.2.3"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
