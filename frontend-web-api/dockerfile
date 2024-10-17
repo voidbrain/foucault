@@ -1,5 +1,5 @@
 # Use an official Node.js base image
-FROM node:18-slim
+FROM node:23.0.0-slim
 
 # Install dependencies for Coral TPU
 RUN apt-get update && apt-get install -y \
@@ -18,7 +18,7 @@ RUN npm install
 COPY . /app
 
 # Expose the necessary port for the application (if running a server)
-EXPOSE 3000
+EXPOSE 8080
 
 # Command to run your application
 CMD ["node", "app.js"]

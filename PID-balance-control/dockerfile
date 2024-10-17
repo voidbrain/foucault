@@ -5,6 +5,8 @@ FROM node:18-slim
 RUN apt-get update && apt-get install -y \
     i2c-tools \
     python3 \
+    make \
+    g++ \ 
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
@@ -18,7 +20,7 @@ RUN npm install
 COPY . /app
 
 # Expose the port if necessary
-EXPOSE 3000
+EXPOSE 3003
 
 # Run the application
 CMD ["node", "app.js"]

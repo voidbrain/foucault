@@ -1,73 +1,123 @@
 services:
   camera-feed-object-detection:
     build:
-      context: ./camera-feed-object-detection-tensorflowjs  # Path to Dockerfile in subdirectory
+      context: ./camera-feed-object-detection-tensorflowjs
     container_name: camera-detection-service
     ports:
-      - "3000:3000"  # Exposing the port for this service (if needed)
+      - "3000:3000"
     networks:
-      - internal-net  # Internal network for communication
+      - internal-net
     depends_on:
       - mqtt-broker
     environment:
-      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883  # Connect to MQTT broker
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
 
   astar-pathfinder:
     build:
-      context: ./astar-pathfinder-obstacle-avoidance-node  # Path to Dockerfile in subdirectory
+      context: ./astar-pathfinder-obstacle-avoidance-node
     container_name: astar-pathfinder-service
+    ports:
+      - "3002:3002"
     networks:
       - internal-net
     depends_on:
       - mqtt-broker
     environment:
-      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883  # Connect to MQTT broker
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
 
   pid-balance-control:
     build:
-      context: ./PID-balance-control  # Path to Dockerfile in subdirectory
+      context: ./PID-balance-control
     container_name: pid-balance-control-service
-    privileged: true  # Enable privileged mode for GPIO and I2C access
+    ports:
+      - "3003:3003"
+    privileged: true
     devices:
-      - /dev/i2c-1:/dev/i2c-1  # Map I2C device
-      - /dev/gpiomem:/dev/gpiomem  # Map GPIO memory
+      - /dev/i2c-1:/dev/i2c-1
+      - /dev/gpiomem:/dev/gpiomem
     networks:
       - internal-net
     depends_on:
       - mqtt-broker
     environment:
-      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883  # Connect to MQTT broker
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
     restart: unless-stopped
 
   frontend-web-api:
     build:
-      context: ./frontend-web-api  # Path to Dockerfile in subdirectory
+      context: ./frontend-web-api
     container_name: frontend-service
     ports:
-      - "8080:8080"  # Expose port 8080 to make the frontend accessible externally
+      - "8080:8080"
     networks:
       - internal-net
-      - external-net  # Expose to external network
+      - external-net
     depends_on:
       - mqtt-broker
     environment:
-      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883  # Connect to MQTT broker
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
 
   mqtt-broker:
-    image: eclipse-mosquitto:latest  # Using the Eclipse Mosquitto MQTT broker
+    image: eclipse-mosquitto:latest
     container_name: mqtt-broker
     ports:
-      - "1883:1883"  # Exposing MQTT broker port for internal services
+      - "1883:1883"
     networks:
       - internal-net
     volumes:
-      - ./mosquitto/config:/mosquitto/config  # Optional: Configuration folder
-      - ./mosquitto/data:/mosquitto/data      # Optional: Data persistence
-      - ./mosquitto/log:/mosquitto/log        # Optional: Log folder
+      - /mqtt-broker/mosquitto/config:/mosquitto/config
+      - /mqtt-broker/mosquitto/data:/mosquitto/data
+      - /mqtt-broker/mosquitto/log:/mosquitto/log
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3001"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=Grover428 # Change password here
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    restart: unless-stopped
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
     restart: unless-stopped
 
 networks:
   internal-net:
-    driver: bridge  # Internal network for communication between services
+    driver: bridge
   external-net:
-    driver: bridge  # External network to expose frontend
+    driver: bridge
+
+volumes:
+  grafana-storage:
