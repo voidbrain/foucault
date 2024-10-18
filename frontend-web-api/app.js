@@ -15,7 +15,7 @@ mqttClient.on('message', (topic, message) => {
 
 // Define a simple route
 app.get('/', (req, res) => {
-  res.send('A* Pathfinder Service is running!');
+  res.send('Frontend Service is running!');
 });
 
 // Define a route for starting object detection (replace with your logic)

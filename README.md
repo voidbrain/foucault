@@ -32,10 +32,10 @@ containers:
 
 ## Access services
 
-Grafana: http://foucault:3001 (default credentials: admin/admin).
-Prometheus: http://foucault:9090.
-cAdvisor: http://foucault:8080 (for real-time container stats).
-Node Exporter metrics will be available to Prometheus at http://foucault:9100/metrics.
+Grafana: http://foucault.local:3001 (default credentials: admin/admin).
+Prometheus: http://foucault.local:9090.
+cAdvisor: http://foucault.local:8081/ (for real-time container stats).
+Node Exporter metrics will be available to Prometheus at http://foucault.local:9100/metrics.
 
 Configure Grafana:
 Login to Grafana and add Prometheus as a data source:
@@ -46,15 +46,21 @@ TODO: add TPU stats  --> edgetpu_runtime --status
 
 ```mermaid
   graph TD;
-    A*==>|Mqtt|Frontend;
-    Camera==>|Mqtt|Frontend;
-    PID<==>|Mqtt|Frontend;
-    Frontend<-->|Web|User;
+    (cam) ==> A[A* pathfinder + 
+    obstacles avoidance];
+    A[A* pathfinder + 
+    obstacles avoidance]==>|Mqtt|B[Frontend];
+    C[Camera feed + 
+    objects detection]==>|Mqtt|B[Frontend];
+    D((Sensors input, 
+    PID Algorythm, 
+    motors output))<==>|Mqtt|B[Frontend];
+    B[Frontend]<-->|Web|E((User));
 
     RPi-.->|node-exporter|Prometheus;
     Docker-.->|cadvisor|Prometheus;
     Prometheus-.->Grafana;
-    Grafana-->|Web|User;
+    Grafana-->|Web|E((User));
 
 ```
   
