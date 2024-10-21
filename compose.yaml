@@ -11,6 +11,7 @@ services:
       - mqtt-broker
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+    tty: true
 
   astar-pathfinder:
     build:
@@ -24,6 +25,7 @@ services:
       - mqtt-broker
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+    tty: true
 
   pid-balance-control:
     build:

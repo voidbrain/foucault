@@ -14,6 +14,9 @@ WORKDIR /app
 COPY package.json /app/package.json
 RUN npm install
 
+# Rebuild @tensorflow/tfjs-node from source
+RUN npm rebuild @tensorflow/tfjs-node --build-from-source
+
 # Copy your application code
 COPY . /app
 

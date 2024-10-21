@@ -1,7 +1,7 @@
 {
-  "name": "camera-feed-object-detection",
+  "name": "astar-pathfinder",
   "version": "1.0.0",
-  "description": "A camera feed object detection app using TensorFlow.js and Coral TPU",
+  "description": "astar-pathfinder",
   "main": "app.js",
   "dependencies": {
     "mqtt": "^4.2.8"
