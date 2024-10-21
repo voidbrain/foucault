@@ -85,7 +85,10 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3001:3001"
+      - "3001:3000"
+    networks:
+      - internal-net
+      - external-net
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=Grover428 # Change password here
     volumes:
