@@ -1,3 +1,4 @@
+// Import required libraries
 const tf = require('@tensorflow/tfjs-node');
 const axios = require('axios'); // Library to fetch the video stream
 const express = require('express');
@@ -40,7 +41,7 @@ function preprocessImage(buffer) {
     return imageTensor;
 }
 
-// Stream video and perform inference
+// Stream webcam feed
 app.get('/video', async (req, res) => {
     res.setHeader('Content-Type', 'multipart/x-mixed-replace; boundary=frame');
     

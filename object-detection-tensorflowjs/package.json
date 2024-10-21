@@ -7,7 +7,9 @@
     "axios": "^1.7.7",
     "express": "^4.21.1",
     "mqtt": "^4.2.8",
-    "@tensorflow/tfjs-node": "^3.11.0"
+    "@tensorflow/tfjs-node": "^3.11.0",
+    "@tensorflow/tfjs":"^4.21.0",
+    "@tensorflow-models/coco-ssd":"^2.2.3"
   },
   "scripts": {
     "start": "node app.js"
