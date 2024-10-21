@@ -1,5 +1,7 @@
 // Import required libraries
 const tf = require('@tensorflow/tfjs-node');
+require('@tensorflow/tfjs-backend-cpu');
+require('@tensorflow/tfjs-backend-webgl');
 const axios = require('axios'); // Library to fetch the video stream
 const express = require('express');
 const cocoSsd = require('@tensorflow-models/coco-ssd'); // Import COCO-SSD model
