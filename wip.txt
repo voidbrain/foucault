@@ -1,9 +1,0 @@
-- A* pathfinder + object avoidance
-- Camera feed + object detection
-- PID balance control
-OK - Frontend Web
-- Mqtt broker
-OK - node-exporter
-KO - cadvisor
-OK - Prometheus 
-KO - grafana
