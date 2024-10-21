@@ -13,8 +13,12 @@ let integral = 0;
 let setpoint = 0; // Desired balance angle (usually 0 for upright)
 
 // Motor control pins (Assuming GPIO for motor driver)
-const motor1 = new Gpio(17, 'out'); // GPIO pin 17
-const motor2 = new Gpio(27, 'out'); // GPIO pin 27
+const motor1 = new Gpio(17, 'out'); // GPIO pin for left motor
+const motor2 = new Gpio(27, 'out'); // GPIO pin for right motor
+
+// Servo control pins (for arms)
+const servo1 = new Gpio(22, 'out'); // GPIO pin for left servo
+const servo2 = new Gpio(23, 'out'); // GPIO pin for right servo
 
 // MPU6050 sensor setup
 const i2cBus = i2c.openSync(1);
@@ -38,17 +42,52 @@ function pidControl(currentAngle) {
 }
 
 // Update motor speeds based on PID output
-function updateMotors(pidOutput) {
-  if (pidOutput > 0) {
-    motor1.writeSync(1); // Move motor forward
-    motor2.writeSync(0); // Stop the other motor
-  } else if (pidOutput < 0) {
-    motor1.writeSync(0); // Stop motor
-    motor2.writeSync(1); // Move other motor forward
+function updateMotors(pidOutput, direction) {
+  let speed = Math.abs(pidOutput);
+  
+  if (direction === 'forward') {
+    motor1.writeSync(speed > 0 ? 1 : 0); // Move left motor forward
+    motor2.writeSync(speed > 0 ? 1 : 0); // Move right motor forward
+  } else if (direction === 'backward') {
+    motor1.writeSync(speed < 0 ? 1 : 0); // Move left motor backward
+    motor2.writeSync(speed < 0 ? 1 : 0); // Move right motor backward
   } else {
-    motor1.writeSync(0); // Stop both motors
-    motor2.writeSync(0);
+    motor1.writeSync(0); // Stop left motor
+    motor2.writeSync(0); // Stop right motor
   }
+}
+
+// Handle servo movements based on balance
+function adjustServos() {
+  // Example servo control based on balance
+  const servoAngle = setpoint === 0 ? 90 : (setpoint > 0 ? 120 : 60);
+  servo1.writeSync(servoAngle); // Adjust left servo
+  servo2.writeSync(servoAngle); // Adjust right servo
+}
+
+// Function to read user input (for controlling movement)
+function getUserInput() {
+  const stdin = process.stdin;
+  stdin.setRawMode(true);
+  stdin.resume();
+  stdin.on('data', (chunk) => {
+    const command = chunk.toString();
+    if (command === 'w') {
+      setpoint = 0; // Upright
+      updateMotors(1, 'forward'); // Move forward
+    } else if (command === 's') {
+      setpoint = 0; // Upright
+      updateMotors(-1, 'backward'); // Move backward
+    } else if (command === 'a') {
+      setpoint = 10; // Tilt for left turn
+      updateMotors(1, 'forward'); // Move forward while turning
+    } else if (command === 'd') {
+      setpoint = -10; // Tilt for right turn
+      updateMotors(1, 'forward'); // Move forward while turning
+    } else if (command === 'x') {
+      updateMotors(0); // Stop motors
+    }
+  });
 }
 
 // Main control loop
@@ -56,8 +95,12 @@ function controlLoop() {
   const currentAngle = getTiltAngle(); // Read current tilt angle from MPU6050
   const pidOutput = pidControl(currentAngle); // Get PID output
   updateMotors(pidOutput); // Update motor speeds
+  adjustServos(); // Adjust servos based on balance
   console.log(`Angle: ${currentAngle}, PID Output: ${pidOutput}`);
 }
+
+// Start user input listener
+getUserInput();
 
 // Run control loop at regular intervals (e.g., 100ms)
 setInterval(controlLoop, 100);
@@ -66,6 +109,8 @@ setInterval(controlLoop, 100);
 process.on('SIGINT', () => {
   motor1.unexport();
   motor2.unexport();
-  console.log('Motors stopped, exiting...');
+  servo1.unexport();
+  servo2.unexport();
+  console.log('Motors and servos stopped, exiting...');
   process.exit();
 });
