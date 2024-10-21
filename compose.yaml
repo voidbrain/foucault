@@ -6,10 +6,10 @@ services:
     networks:
       - internal-net
 
-  camera-feed-object-detection:
+  object-detection:
     build:
-      context: ./camera-feed-object-detection-tensorflowjs
-    container_name: camera-detection-service
+      context: ./object-detection-tensorflowjs
+    container_name: object-detection-service
     ports:
       - "3000:3000"
     networks:

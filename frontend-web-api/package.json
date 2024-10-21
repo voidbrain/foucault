@@ -1,10 +1,10 @@
 {
-  "name": "frontend-api",
+  "name": "camera-feed-object-detection",
   "version": "1.0.0",
   "description": "A camera feed object detection app using TensorFlow.js and Coral TPU",
   "main": "app.js",
   "dependencies": {
-    "express": "^4.21.1",
+    "express": "^4.18.2",
     "mqtt": "^4.2.8"
   },
   "scripts": {

@@ -1,7 +1,7 @@
 {
-  "name": "camera-feed-object-detection",
+  "name": "object-detection",
   "version": "1.0.0",
-  "description": "A camera feed object detection app using TensorFlow.js and Coral TPU",
+  "description": "Oobject detection app using TensorFlow.js and Coral TPU",
   "main": "app.js",
   "dependencies": {
     "axios": "^1.7.7",
