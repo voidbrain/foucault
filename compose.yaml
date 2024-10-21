@@ -65,9 +65,9 @@ services:
     networks:
       - internal-net
     volumes:
-      - /mqtt-broker/mosquitto/config:/mosquitto/config
-      - /mqtt-broker/mosquitto/data:/mosquitto/data
-      - /mqtt-broker/mosquitto/log:/mosquitto/log
+      - ./mqtt-broker/mosquitto/config:/mosquitto/config
+      - ./mqtt-broker/mosquitto/data:/mosquitto/data
+      - ./mqtt-broker/mosquitto/log:/mosquitto/log
     restart: unless-stopped
 
   prometheus:
