@@ -3,6 +3,8 @@ services:
     build: ./webcam-stream
     ports:
       - "3008:3008"
+    networks:
+      - internal-net
 
   camera-feed-object-detection:
     build:

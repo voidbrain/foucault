@@ -4,7 +4,7 @@
   "description": "A camera feed object detection app using TensorFlow.js and Coral TPU",
   "main": "app.js",
   "dependencies": {
-    "express": "^4.18.2",
+    "express": "^4.21.1",
     "mqtt": "^4.2.8"
   },
   "scripts": {

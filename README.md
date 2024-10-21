@@ -18,6 +18,8 @@ containers:
 - Frontend Web
   Node.js + ExpressJs 
   web frontend for i/o communication with the world. 
+- webcam stream 
+  node
 
 - Mqtt broker
   queue messages for internal services communications
@@ -32,6 +34,12 @@ containers:
 
 ## Access services
 
+frontend: http://foucault.local:8080
+webcam-strem: http://foucault.local:3008
+astar-pathfinder: http://foucault.local:3002
+camera-feed: http://foucault.local:3000
+pid-balance: http://foucault.local:3003
+
 Grafana: http://foucault.local:3001 (default credentials: admin/admin).
 Prometheus: http://foucault.local:9090.
 cAdvisor: http://foucault.local:8081/ (for real-time container stats).
@@ -41,8 +49,6 @@ Configure Grafana:
 Login to Grafana and add Prometheus as a data source:
 URL: http://prometheus:9090
 Import dashboards for Node Exporter and cAdvisor from Grafana Labs (you can search for existing dashboards like Node Exporter Full and cAdvisor).
-
-TODO: add TPU stats  --> edgetpu_runtime --status
 
 ```mermaid
   graph TD;

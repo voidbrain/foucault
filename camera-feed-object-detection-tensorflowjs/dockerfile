@@ -1,27 +1,20 @@
 # Use an official Node.js base image
 FROM node:23.0.0-slim
 
-# Install dependencies for Coral TPU and other utilities
+# Install dependencies for Coral TPU
 RUN apt-get update && apt-get install -y \
-    wget \
     curl \
+    wget \
     python3 \
     python3-pip \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Add Coral's repository to the sources list (without key verification)
-RUN echo "deb [trusted=yes] http://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
-
-# Install Edge TPU runtime
-RUN apt-get update && apt-get install -y libedgetpu1-std
-
-# Install additional packages (customize this based on your app's needs)
+# Install any additional packages (you can replace these with your project dependencies)
 WORKDIR /app
-COPY package.json /app/package.json
-RUN npm install
 
-RUN npm i node-webcam
+COPY package.json /app/package.json
+
+RUN npm install
 
 # Rebuild @tensorflow/tfjs-node from source
 RUN npm rebuild @tensorflow/tfjs-node --build-from-source

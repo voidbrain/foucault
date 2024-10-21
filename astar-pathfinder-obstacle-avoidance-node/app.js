@@ -1,163 +1,78 @@
-// Import required libraries for TensorFlow.js, camera feed, and A* implementation
 const tf = require('@tensorflow/tfjs-node');
-const NodeWebcam = require('node-webcam');
+const axios = require('axios'); // Library to fetch the video stream
+const express = require('express');
+const app = express();
+const port = 3000; // Port for the server
 
-// A* Algorithm
-function aStar(start, goal, grid) {
-  let openSet = [start];
-  let closedSet = [];
+// Load a TensorFlow.js model (ensure this is a .json model file)
+async function loadModel() {
+    const model = await tf.loadLayersModel('file://path/to/your/model/model.json'); // Update with your model path
+    return model;
+}
 
-  function heuristic(a, b) {
-    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  }
+// Perform inference using the loaded model on input tensor
+async function runInference(model, input) {
+    const output = model.predict(input);
+    console.log('Inference result:', output.dataSync()); // Synchronously get data from tensor
+}
 
-  while (openSet.length > 0) {
-    openSet.sort((a, b) => a.f - b.f);
-    let current = openSet.shift();
-
-    if (current === goal) {
-      return reconstructPath(current);
+// Fetch a frame from the video stream
+async function fetchFrameFromStream() {
+    try {
+        // Fetch the video frame from an existing webcam stream URL
+        const response = await axios.get('http://webcam-stream:3008/stream', {
+            responseType: 'arraybuffer',
+        });
+        return response.data; // Return the frame buffer
+    } catch (error) {
+        console.error('Error fetching frame from stream:', error);
+        throw error;
     }
+}
 
-    closedSet.push(current);
+// Preprocess image buffer into a tensor
+function preprocessImage(buffer) {
+    const imageTensor = tf.node.decodeImage(buffer, 3) // Decode buffer into 3-channel RGB image
+        .resizeBilinear([224, 224])                    // Resize to model input size
+        .toFloat()                                     // Convert to float for model input
+        .div(tf.scalar(255.0))                         // Normalize pixel values to [0, 1]
+        .expandDims(0);                                // Add batch dimension for inference
+    return imageTensor;
+}
 
-    for (let neighbor of getNeighbors(current, grid)) {
-      if (closedSet.includes(neighbor)) continue;
+// Stream video and perform inference
+app.get('/video', async (req, res) => {
+    res.setHeader('Content-Type', 'multipart/x-mixed-replace; boundary=frame');
+    
+    while (true) {
+        try {
+            // Fetch a frame from the video stream
+            const frameBuffer = await fetchFrameFromStream();
 
-      let tentative_g = current.g + 1;
+            // Preprocess the image for model input
+            const inputTensor = preprocessImage(frameBuffer);
 
-      if (!openSet.includes(neighbor) || tentative_g < neighbor.g) {
-        neighbor.g = tentative_g;
-        neighbor.h = heuristic(neighbor, goal);
-        neighbor.f = neighbor.g + neighbor.h;
-        neighbor.cameFrom = current;
+            // Run inference on the captured frame
+            await runInference(model, inputTensor);
 
-        if (!openSet.includes(neighbor)) {
-          openSet.push(neighbor);
+            // Send the frame as part of the stream
+            res.write(`--frame\r\n`);
+            res.write(`Content-Type: image/jpeg\r\n\r\n`);
+            res.write(frameBuffer);
+            res.write(`\r\n`);
+        } catch (error) {
+            console.error('Error during inference or capturing:', error);
+            break; // Exit the loop on error
         }
-      }
     }
-  }
+});
 
-  return null; // No path found
-}
-
-// Function to reconstruct the path once the goal is reached
-function reconstructPath(current) {
-  let path = [];
-  while (current.cameFrom) {
-    path.push(current);
-    current = current.cameFrom;
-  }
-  return path.reverse();
-}
-
-// Function to get neighbors (assuming 4-directional movement)
-function getNeighbors(node, grid) {
-  let neighbors = [];
-  let dirs = [
-    { x: 0, y: -1 }, // Up
-    { x: 0, y: 1 },  // Down
-    { x: -1, y: 0 }, // Left
-    { x: 1, y: 0 }   // Right
-  ];
-
-  for (let dir of dirs) {
-    let newX = node.x + dir.x;
-    let newY = node.y + dir.y;
-    if (newX >= 0 && newX < grid.length && newY >= 0 && newY < grid[0].length) {
-      neighbors.push(grid[newX][newY]);
+// Start the server
+app.listen(port, async () => {
+    try {
+        const model = await loadModel(); // Load the model once
+        console.log(`Server running on http://localhost:${port}`);
+    } catch (error) {
+        console.error('Error loading the model:', error);
     }
-  }
-
-  return neighbors;
-}
-
-// Function to continuously capture frames from the camera
-async function captureFrameAndUpdateGrid() {
-  const options = {
-    width: 640,
-    height: 480,
-    quality: 100,
-    delay: 0,
-    output: "jpeg",
-    device: false,
-    callbackReturn: "buffer",
-  };
-
-  const Webcam = NodeWebcam.create(options);
-  
-  while (true) {
-    await new Promise((resolve, reject) => {
-      Webcam.capture("frame", (err, frameBuffer) => {
-        if (err) {
-          console.error("Error capturing frame:", err);
-          return reject(err);
-        }
-
-        // Preprocess the frame and update the grid with obstacles or objects
-        updateGridWithCameraFeed(frameBuffer);
-
-        resolve();
-      });
-    });
-
-    // Delay between frames (adjust as needed)
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-}
-
-// Function to update the grid with obstacles from the camera feed
-function updateGridWithCameraFeed(frameBuffer) {
-  // TODO: Process the frameBuffer using image processing (e.g., TensorFlow.js)
-  // to detect obstacles and dynamically update the grid.
-  
-  // For now, assuming the grid is static and no dynamic obstacles are detected.
-}
-
-// Main function to run continuous A* pathfinding
-(async () => {
-  // Define a grid (for simplicity, a 2D array of nodes)
-  const grid = createGrid(20, 20);
-
-  // Set start and goal nodes
-  const start = grid[0][0];
-  const goal = grid[19][19];
-
-  // Set up the continuous loop for capturing frames and running A* pathfinding
-  await captureFrameAndUpdateGrid();
-
-  while (true) {
-    // Continuously run A* with updated start, goal, and grid
-    const path = aStar(start, goal, grid);
-
-    if (path) {
-      console.log("Path found:", path);
-    } else {
-      console.log("No path found.");
-    }
-
-    // Delay between each A* run (optional, can be adjusted based on camera feed rate)
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-})();
-
-// Utility function to create a 2D grid for the A* algorithm
-function createGrid(rows, cols) {
-  let grid = [];
-  for (let x = 0; x < rows; x++) {
-    let row = [];
-    for (let y = 0; y < cols; y++) {
-      row.push({
-        x: x,
-        y: y,
-        g: 0,
-        h: 0,
-        f: 0,
-        cameFrom: null
-      });
-    }
-    grid.push(row);
-  }
-  return grid;
-}
+});

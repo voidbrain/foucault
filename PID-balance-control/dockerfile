@@ -16,6 +16,7 @@ RUN npm install coffee-script@1.12.7 --save
 
 # Copy package.json and install dependencies
 COPY package.json /app/package.json
+
 RUN npm install
 
 # Copy the application code
