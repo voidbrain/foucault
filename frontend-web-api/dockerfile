@@ -14,8 +14,8 @@ WORKDIR /app
 COPY package.json /app/package.json
 RUN npm install
 
-# Copy your application code
-COPY . /app
+# Copy the rest of the application files
+COPY . .
 
 # Expose the necessary port for the application (if running a server)
 EXPOSE 8080

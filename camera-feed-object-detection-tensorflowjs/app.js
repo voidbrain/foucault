@@ -1,13 +1,13 @@
 // Import required libraries
 const tf = require('@tensorflow/tfjs-node');
 const NodeWebcam = require('node-webcam'); // Library to capture webcam images
-const fs = require('fs');
-const path = require('path');
+const express = require('express');
+const app = express();
+const port = 3000; // Port for the server
 
-// Load a TensorFlow.js model (not TensorFlow Lite, as tfjs-node doesn't support tflite models)
+// Load a TensorFlow.js model (ensure this is a .json model file)
 async function loadModel() {
-    // Replace 'path/to/your/model.json' with the actual path to the TensorFlow.js model
-    const model = await tf.loadLayersModel('file://path/to/your/model/model.json');
+    const model = await tf.loadLayersModel('file://path/to/your/model/model.json'); // Update with your model path
     return model;
 }
 
@@ -43,7 +43,6 @@ function captureFrame() {
 
 // Preprocess image buffer into a tensor
 function preprocessImage(buffer) {
-    // Preprocess the buffer into a tensor based on model requirements
     const imageTensor = tf.node.decodeImage(buffer, 3) // Decode buffer into 3-channel RGB image
         .resizeBilinear([224, 224])                    // Resize to model input size
         .toFloat()                                     // Convert to float for model input
@@ -52,36 +51,39 @@ function preprocessImage(buffer) {
     return imageTensor;
 }
 
-// Add delay to avoid overloading the system between frames
-async function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+// Stream webcam feed
+app.get('/video', async (req, res) => {
+    res.setHeader('Content-Type', 'multipart/x-mixed-replace; boundary=frame');
+    
+    while (true) {
+        try {
+            // Capture a frame from the camera
+            const frameBuffer = await captureFrame();
 
-// Main application logic for continuous camera feed processing
-(async () => {
-    try {
-        // Load the model once
-        const model = await loadModel();
+            // Preprocess the image for model input
+            const inputTensor = preprocessImage(frameBuffer);
 
-        // Continuous loop to capture frames and run inference
-        while (true) {
-            try {
-                // Capture a frame from the camera
-                const frameBuffer = await captureFrame();
+            // Run inference on the captured frame
+            await runInference(model, inputTensor);
 
-                // Preprocess the image for model input
-                const inputTensor = preprocessImage(frameBuffer);
-
-                // Run inference on the captured frame
-                await runInference(model, inputTensor);
-            } catch (error) {
-                console.error('Error during inference or capturing:', error);
-            }
-
-            // Optional: Introduce a small delay between frames to avoid system overload
-            await delay(100); // 100ms delay
+            // Send the frame as part of the stream
+            res.write(`--frame\r\n`);
+            res.write(`Content-Type: image/jpeg\r\n\r\n`);
+            res.write(frameBuffer);
+            res.write(`\r\n`);
+        } catch (error) {
+            console.error('Error during inference or capturing:', error);
+            break; // Exit the loop on error
         }
+    }
+});
+
+// Start the server
+app.listen(port, async () => {
+    try {
+        const model = await loadModel(); // Load the model once
+        console.log(`Server running on http://localhost:${port}`);
     } catch (error) {
         console.error('Error loading the model:', error);
     }
-})();
+});

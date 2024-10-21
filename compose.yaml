@@ -1,4 +1,9 @@
 services:
+  webcam-stream:
+    build: ./webcam-stream
+    ports:
+      - "3008:3008"
+
   camera-feed-object-detection:
     build:
       context: ./camera-feed-object-detection-tensorflowjs
@@ -9,6 +14,7 @@ services:
       - internal-net
     depends_on:
       - mqtt-broker
+      - webcam-stream
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
     tty: true
@@ -23,6 +29,7 @@ services:
       - internal-net
     depends_on:
       - mqtt-broker
+      - webcam-stream
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
     tty: true
@@ -56,6 +63,7 @@ services:
       - external-net
     depends_on:
       - mqtt-broker
+      - webcam-stream
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
 

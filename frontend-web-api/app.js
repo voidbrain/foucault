@@ -15,7 +15,8 @@ mqttClient.on('message', (topic, message) => {
 
 // Define a simple route
 app.get('/', (req, res) => {
-  res.send('Frontend Service is running!');
+  // res.send('Frontend Service is running!');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Define a route for starting object detection (replace with your logic)
