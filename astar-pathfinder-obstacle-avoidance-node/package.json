@@ -4,7 +4,8 @@
   "description": "astar-pathfinder",
   "main": "app.js",
   "dependencies": {
-    "mqtt": "^4.2.8"
+    "mqtt": "^4.2.8",
+    "@tensorflow/tfjs-node": "^3.11.0"
   },
   "scripts": {
     "start": "node app.js"
