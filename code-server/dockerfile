@@ -1,0 +1,27 @@
+# Use Debian as the base image for better compatibility with code-server
+FROM debian:bullseye-slim
+
+# Install dependencies
+RUN apt-get update --fix-missing && \
+    apt-get install -y \
+    curl \
+    python3 \
+    build-essential \
+    libssl-dev \
+    pkg-config \
+    nodejs \
+    npm && \
+    apt-get clean
+
+# Install Node.js 20
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+apt-get install -y nodejs
+
+# Install code-server globally
+RUN npm install -g code-server --unsafe-perm
+
+# Expose the code-server port
+EXPOSE 8089
+
+# Start code-server
+CMD ["code-server", "--bind-addr", "0.0.0.0:8089"]
