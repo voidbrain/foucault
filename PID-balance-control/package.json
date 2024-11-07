@@ -7,11 +7,10 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "coffee-script": "^1.12.7",
-    "i2c-bus": "^5.2.3",
-    "mpu6050": "^0.1.4",
     "onoff": "^6.0.3",
-    "mqtt": "^4.2.8"
+    "mpu6050": "^0.1.4",
+    "i2c-bus": "^5.2.3",
+    "coffee-script": "^1.12.7"
   },
   "author": "Your Name",
   "license": "MIT"
