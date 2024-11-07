@@ -1,0 +1,40 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Stream</title>
+</head>
+<body>
+    <h1>Webcam Stream</h1>
+    <img src="http://localhost:3001/video" alt="Webcam Feed" />
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontend - MQTT Messages</title>
+</head>
+<body>
+  <h1>MQTT Messages</h1>
+  <div id="messages"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    // Listen for 'mqtt-message' event from the server
+    socket.on('mqtt-message', (data) => {
+      console.log('Received MQTT message:', data);
+      
+      // Append the message to the page
+      const messagesDiv = document.getElementById('messages');
+      const messageElement = document.createElement('p');
+      messageElement.textContent = `Topic: ${data.topic} - Message: ${data.message}`;
+      messagesDiv.appendChild(messageElement);
+    });
+  </script>
+</body>
+</html>

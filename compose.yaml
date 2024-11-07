@@ -38,7 +38,7 @@ services:
 
   pid-balance-control:
     build:
-      context: ./PID-balance-control
+      context: ./pid-balance-control
     container_name: pid-balance-control-service
     ports:
       - "3003:3003"
