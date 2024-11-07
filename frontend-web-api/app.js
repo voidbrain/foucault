@@ -16,30 +16,32 @@ mqttClient.on('connect', () => {
   console.log('Connected to MQTT broker');
 });
 
-mqttClient.subscribe('pid/console', function (err) {
-  if (err) {
-    console.log("err", err);
-  }
-});
-
-mqttClient.subscribe('pid/motors', function (err) {
-  if (err) {
-    console.log("err", err);
-  }
-});
-
-mqttClient.subscribe('pid/servos', function (err) {
-  if (err) {
-    console.log("err", err);
-  }
+const topics = [
+  'controller/console','pid/console', 
+  'pid/motors/left', 'pid/servos/left', 'pid/motors/right', 'pid/servos/right',
+  'controller/servos/left/ack', 'controller/motors/left/ack', 'controller/servos/right/ack', 'controller/motors/right/ack',
+];
+topics.forEach(topic => {
+  mqttClient.subscribe(topic, function (err) {
+    if (err) { console.log("err", err); }
+  });
 });
 
 // When MQTT messages are received, emit them to the connected frontend
 mqttClient.on('message', (topic, message) => {
   console.log(`Received message: ${message.toString()} on topic: ${topic}`);
 
+  // Optionally, parse the message if it's in JSON format
+  let parsedMessage = {};
+  try {
+    parsedMessage = JSON.parse(message.toString());
+  } catch (error) {
+    console.error('Failed to parse message:', error);
+    parsedMessage = { message: message.toString(), value: null };  // Handle invalid JSON
+  }
+
   // Emit the message to the frontend via WebSocket
-  io.emit('mqtt-message', { topic, message: message.toString() });
+  io.emit('mqtt-message', { topic, ...parsedMessage });
 });
 
 // Define a simple route
