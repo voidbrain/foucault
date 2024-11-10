@@ -1,0 +1,10 @@
+{
+  "name": "motor-controller",
+  "version": "1.0.0",
+  "description": "Control servos and motors via MQTT using pigpio",
+  "main": "app.js",
+  "dependencies": {
+    "mqtt": "^5.10.1",
+    "pigpio": "^3.3.1"
+  }
+}

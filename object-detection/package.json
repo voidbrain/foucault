@@ -6,12 +6,12 @@
   "dependencies": {
     "axios": "^1.7.7",
     "express": "^4.21.1",
-    "mqtt": "^4.2.8",
-    "@tensorflow/tfjs-node": "^4.10.0",  
-    "@tensorflow/tfjs": "^4.10.0",        
-    "@tensorflow-models/coco-ssd": "^2.1.0",
-    "@tensorflow/tfjs-backend-cpu": "^4.10.0",  
-    "@tensorflow/tfjs-backend-webgl": "^4.10.0"
+    "mqtt": "^5.10.1",
+    "@tensorflow/tfjs-node": "^4.22.0",  
+    "@tensorflow/tfjs": "^4.22.0",        
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow/tfjs-backend-cpu": "^4.22.0",  
+    "@tensorflow/tfjs-backend-webgl": "^4.22.0"
   },
   "scripts": {
     "start": "node app.js"

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robot Control and Monitoring</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+    .container { display: flex; flex-direction: column; align-items: center; }
+    .section { max-width: 600px; width: 100%; margin: 10px 0; }
+    .section-header { font-size: 1.2em; margin-bottom: 5px; }
+    .section-content { padding: 10px; background: #f4f4f4; border-radius: 5px; }
+    #status { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Robot Control and Monitoring</h1>
+    <p id="status">Status: <span>Connecting...</span></p>
+    <button onclick="startObjectDetection()">Start Object Detection</button>
+
+    <h2>Incoming Messages</h2>
+
+    <!-- Console Section -->
+    <div id="console-section" class="section">
+      <div class="section-header">Console</div>
+      <div class="section-content" id="console-content">Waiting for console messages...</div>
+    </div>
+
+    <!-- Accelerometer Data Section -->
+    <div id="accelData-section" class="section">
+      <div class="section-header">Accelerometer Data</div>
+      <div class="section-content" id="accelData-content">Waiting for accelerometer data...</div>
+    </div>
+
+    <!-- Tilt Angles Section -->
+    <div id="tiltAngles-section" class="section">
+      <div class="section-header">Tilt Angles</div>
+      <div class="section-content" id="tiltAngles-content">Waiting for tilt angles...</div>
+    </div>
+
+    <!-- Motor Left Section -->
+    <div id="motorLeft-section" class="section">
+      <div class="section-header">Motor Left PWM</div>
+      <div class="section-content" id="motorLeft-content">Waiting for motor PWM data...</div>
+    </div>
+
+    <!-- Motor Right Section -->
+    <div id="motorRight-section" class="section">
+      <div class="section-header">Motor Right PWM</div>
+      <div class="section-content" id="motorRight-content">Waiting for motor PWM data...</div>
+    </div>
+
+    <!-- Servo Left Section -->
+    <div id="servoLeft-section" class="section">
+      <div class="section-header">Servo Left Pulse Width</div>
+      <div class="section-content" id="servoLeft-content">Waiting for servo pulse width data...</div>
+    </div>
+
+    <!-- Servo Right Section -->
+    <div id="servoRight-section" class="section">
+      <div class="section-header">Servo Right Pulse Width</div>
+      <div class="section-content" id="servoRight-content">Waiting for servo pulse width data...</div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+  
+    // Listen for mqtt-message and update corresponding sections
+    socket.on('mqtt-message', function(data) {
+      const topic = data.topic;
+      const parsedMessage = data.data;  // The message is now inside the "data" field
+  
+      // Check if the data contains a "value" key
+      let message = parsedMessage.value !== undefined ? parsedMessage.value : JSON.stringify(parsedMessage);
+  
+      // Update the content of each section based on the topic
+      switch (topic) {
+        case 'controller/console':
+          document.getElementById('console-content').textContent = message;
+          break;
+        case 'controller/accelData':
+          document.getElementById('accelData-content').textContent = message;
+          break;
+        case 'controller/tiltAngles':
+          document.getElementById('tiltAngles-content').textContent = message;
+          break;
+        case 'controller/motorPWM/left':
+          document.getElementById('motorLeft-content').textContent = `Left Motor PWM: ${message}`;
+          break;
+        case 'controller/motorPWM/right':
+          document.getElementById('motorRight-content').textContent = `Right Motor PWM: ${message}`;
+          break;
+        case 'controller/servoPulseWidth/left':
+          document.getElementById('servoLeft-content').textContent = `Left Servo Pulse Width: ${message}`;
+          break;
+        case 'controller/servoPulseWidth/right':
+          document.getElementById('servoRight-content').textContent = `Right Servo Pulse Width: ${message}`;
+          break;
+        default:
+          console.log(`Unknown topic: ${topic}`);
+      }
+    });
+  
+    function startObjectDetection() {
+      fetch('/detect')
+        .then(response => response.text())
+        .then(data => {
+          alert(data); // Handle object detection response
+        })
+        .catch(error => console.error('Error starting object detection:', error));
+    }
+  </script>
+  
+  
+</body>
+</html>

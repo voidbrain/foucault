@@ -2,7 +2,7 @@ services:
   webcam-stream:
     build:
       context: ./webcam-stream
-      dockerfile: dockerfile  # Specify the custom filename here
+    container_name: webcam-stream-service
     ports:
       - "3008:3008"
     networks:
@@ -10,8 +10,7 @@ services:
 
   object-detection:
     build:
-      context: ./object-detection-tensorflowjs
-      dockerfile: dockerfile  # Specify the custom filename here
+      context: ./object-detection
     container_name: object-detection-service
     ports:
       - "3000:3000"
@@ -24,11 +23,10 @@ services:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
     tty: true
 
-  astar-pathfinder:
+  obstacle-avoidance:
     build:
-      context: ./astar-pathfinder-obstacle-avoidance-node
-      dockerfile: dockerfile  # Specify the custom filename here
-    container_name: astar-pathfinder-service
+      context: ./obstacle-avoidance
+    container_name: obstacle-avoidance-service
     ports:
       - "3002:3002"
     networks:
@@ -42,9 +40,8 @@ services:
 
   pid-balance-control:
     build:
-      context: ./PID-balance-control
-      dockerfile: dockerfile  # Specify the custom filename here
-    container_name: pid-balance-control-service
+      context: ./pid-balance
+    container_name: pid-balance-service
     ports:
       - "3003:3003"
     privileged: true
@@ -59,10 +56,27 @@ services:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
     restart: unless-stopped
 
-  frontend-web-api:
+  motor-controller:
     build:
-      context: ./frontend-web-api
-      dockerfile: dockerfile  # Specify the custom filename here
+      context: ./motor-controller
+    container_name: motor-controller-service
+    ports:
+      - "3009:3009"
+    privileged: true
+    devices:
+      - "/dev/gpiomem:/dev/gpiomem"
+      - "/dev/i2c-1:/dev/i2c-1"
+    environment:
+      MQTT_BROKER_URL: mqtt://mqtt-broker:1883
+    depends_on:
+      - mqtt-broker
+    networks:
+      - internal-net
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
     container_name: frontend-service
     ports:
       - "8080:8080"
@@ -74,6 +88,21 @@ services:
       - webcam-stream
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+
+  # code-server:
+  #   build:
+  #     context: ./code-server
+  #     dockerfile: dockerfile  # Specify the custom filename here
+  #   container_name: code-server
+  #   ports:
+  #     - "8089:8089"
+  #   volumes:
+  #     - ./workspace:/home/coder/project  # Mount the workspace directory to persist files
+  #   environment:
+  #     PASSWORD: "your_secure_password"
+  #   networks:
+  #     - internal-net  # Added network to allow access to other containers
+  #   restart: unless-stopped
 
   mqtt-broker:
     image: eclipse-mosquitto:latest
@@ -132,21 +161,6 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-    restart: unless-stopped
-
-  code-server:
-    build:
-      context: ./code-server
-      dockerfile: dockerfile  # Specify the custom filename here
-    container_name: code-server
-    ports:
-      - "8089:8089"
-    volumes:
-      - ./workspace:/home/coder/project  # Mount the workspace directory to persist files
-    environment:
-      PASSWORD: "your_secure_password"
-    networks:
-      - internal-net  # Added network to allow access to other containers
     restart: unless-stopped
 
 networks:
