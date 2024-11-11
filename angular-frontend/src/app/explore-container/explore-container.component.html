@@ -1,0 +1,110 @@
+<ion-content>
+  <ion-header>
+    <ion-toolbar>
+      <ion-title>Explore Container</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-grid>
+    <ion-row>
+      <!-- Three.js Canvas on the left side -->
+      <ion-col size="6">
+        <div id="threejs-container" #threejsContainer style="width: 100%; height: 100%;"></div>
+      </ion-col>
+
+      
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>Status</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <ion-text color="primary">{{ status }}</ion-text>
+            </ion-card-content>
+          </ion-card>
+      
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Tilt Data</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-text id="tiltAngles-content">Loading...</ion-text>
+              </ion-card-content>
+            </ion-card>
+          
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Accelerometer Data</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-text id="accelData-content">Loading...</ion-text>
+              </ion-card-content>
+            </ion-card>
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Motor PWM</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-text id="motor1-content">Loading...</ion-text>
+              </ion-card-content>
+            </ion-card>
+         
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Servo Pulse Width</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-text id="servo1-content">Loading...</ion-text>
+              </ion-card-content>
+            </ion-card>
+         
+       
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Height Level</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-range [(ngModel)]="heightLevel" min="1" max="5" step="1" color="primary" (ion-change)="updateHeight($event)">
+                  <ion-label slot="start">1</ion-label>
+                  <ion-label slot="end">5</ion-label>
+                </ion-range>
+              </ion-card-content>
+            </ion-card>
+        
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Console</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div id="console-content" style="max-height: 200px; overflow-y: auto;"></div>
+              </ion-card-content>
+            </ion-card>
+          </ion-card>
+        
+          <ion-card>
+            <ion-grid>
+              <ion-row>
+                <ion-col size="12">
+                  <ion-button (click)="sendControlCommand('forward')">W</ion-button>
+                </ion-col>
+              </ion-row>
+              <ion-col>
+                <ion-col size="4">
+                  <ion-button (click)="sendControlCommand('left')">A</ion-button>
+                </ion-col>
+                <ion-col size="4">
+                  <ion-button (click)="sendControlCommand('backward')">S</ion-button>
+                </ion-col>
+                <ion-col size="4">
+                  <ion-button (click)="sendControlCommand('right')">D</ion-button>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+
+          
+            <ion-button (click)="startObjectDetection()">Start Object Detection</ion-button>
+            <ion-toggle [(ngModel)]="isEnabled" (ion-change)="toggleEnable($event)">Enable Control</ion-toggle>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+</ion-content>

@@ -1,0 +1,12 @@
+<div class="canvasContent">
+  @if (chartData !== undefined) {
+    <canvas
+      baseChart
+      [type]="chartType"
+      [data]="chartData"
+      [options]="chartOptions"
+      [legend]="chartLegend"
+    >
+    </canvas>
+  }
+</div>

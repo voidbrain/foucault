@@ -89,6 +89,21 @@ services:
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
 
+  angular-frontend:
+    build:
+      context: ./angular-frontend
+    container_name: angular-frontend-service
+    ports:
+      - "8082:8082"
+    networks:
+      - internal-net
+      - external-net
+    depends_on:
+      - mqtt-broker
+      - webcam-stream
+    environment:
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+
   # code-server:
   #   build:
   #     context: ./code-server
@@ -103,6 +118,19 @@ services:
   #   networks:
   #     - internal-net  # Added network to allow access to other containers
   #   restart: unless-stopped
+
+  # chrome-web:
+  #   build:
+  #     context: ./chrome-web
+  #     dockerfile: dockerfile  # Specify the custom filename here
+  #   container_name: chrome-web
+  #   ports:
+  #     - "8090:8090"
+  #   environment:
+  #     - DISPLAY=:99  # Use Xvfb virtual display
+  #   volumes:
+  #     - /tmp/.X11-unix:/tmp/.X11-unix  # Optional for real X11 forwarding, not needed with Xvfb
+  #   command: ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1280x1024x24'", "google-chrome-stable", "--no-sandbox", "--remote-debugging-port=8090"]
 
   mqtt-broker:
     image: eclipse-mosquitto:latest

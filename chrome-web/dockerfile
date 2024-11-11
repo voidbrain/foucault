@@ -1,0 +1,21 @@
+# Use an ARM-compatible base image, like Ubuntu 20.04 for ARM64
+FROM arm64v8/ubuntu:20.04
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    chromium-browser \
+    wget \
+    gnupg \
+    software-properties-common \
+    apt-transport-https \
+    curl \
+    --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set environment variable for X11
+ENV DISPLAY=:0
+
+# Set up an alias to run Chromium as google-chrome if needed
+RUN ln -s /usr/bin/chromium-browser /usr/bin/google-chrome
+
+CMD ["chromium-browser", "--no-sandbox"]

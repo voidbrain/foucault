@@ -115,22 +115,29 @@ function calculateHeightDifference({ xAngle }) {
   };
 }
 
-// PID Controller for each motor
-function pidControl(currentAngle, previousError, integral) {
+// Adjusted PID controller for each motor based on tilt angle direction
+function pidControl(currentAngle, previousError, integral, isLeftMotor) {
   const error = setpoint - currentAngle;
   integral += error;
   const derivative = error - previousError;
   const output = Kp * error + Ki * integral + Kd * derivative;
-  return { output, previousError: error, integral };
+
+  // Apply minimum output threshold
+  const minOutputThreshold = 5;
+  const adjustedOutput = Math.abs(output) < minOutputThreshold ? 0 : output;
+
+  // Reverse direction of output based on tilt direction for each motor
+  const directionAdjustedOutput = isLeftMotor ? adjustedOutput : -adjustedOutput;
+  return { output: directionAdjustedOutput, previousError: error, integral };
 }
 
-// Function to update motors (send PID control output via MQTT)
+// Function to update motors based on separate outputs for left and right motors
 function updateMotors(leftOutput, rightOutput) {
-  const clampedLeftOutput = Math.max(0, Math.min(255, Math.round(leftOutput)));
-  const clampedRightOutput = Math.max(0, Math.min(255, Math.round(rightOutput)));
+  const clampedLeftOutput = Math.max(0, Math.min(255, Math.round(127 + leftOutput))); // Center at 127 for both directions
+  const clampedRightOutput = Math.max(0, Math.min(255, Math.round(127 + rightOutput)));
 
   sendMQTTMessage(topics.motorLeft, { value: clampedLeftOutput });
-  sendMQTTMessage(topics.motorRight, { value: clampedRightOutput});
+  sendMQTTMessage(topics.motorRight, { value: clampedRightOutput });
 
   console.log(`Left Motor PWM: ${clampedLeftOutput}, Right Motor PWM: ${clampedRightOutput}`);
 }
@@ -152,12 +159,18 @@ function adjustServos(xAngle) {
   console.log(`Right Servo Pulse Width: ${clampedRightPulseWidth}µs`);
 }
 
+// Run control loop at regular intervals (e.g., 200ms)
+setInterval(controlLoop, 200);
+
 // Main control loop (called at regular intervals)
 async function controlLoop() {
   const tiltAngles = await getTiltAngles();
-  const pidLeft = pidControl(tiltAngles.xAngle, previousErrorLeft, integralLeft);
-  const pidRight = pidControl(tiltAngles.yAngle, previousErrorRight, integralRight);
+  
+  // Separate PID calculations for each motor, reversing output as necessary
+  const pidLeft = pidControl(tiltAngles.xAngle, previousErrorLeft, integralLeft, true);
+  const pidRight = pidControl(tiltAngles.yAngle, previousErrorRight, integralRight, false);
 
+  // Update previous errors and integrals
   previousErrorLeft = pidLeft.previousError;
   integralLeft = pidLeft.integral;
   previousErrorRight = pidRight.previousError;
@@ -165,12 +178,12 @@ async function controlLoop() {
 
   sendMQTTMessage(topics.tiltAngles, tiltAngles);
 
+  // Update motors with the adjusted outputs
   updateMotors(pidLeft.output, pidRight.output);
+
+  // Adjust servos for balance
   adjustServos(tiltAngles.xAngle);
 }
-
-// Run control loop at regular intervals (e.g., 200ms)
-setInterval(controlLoop, 200);
 
 // Initialize MPU6050
 wakeUpMPU6050();
