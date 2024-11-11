@@ -23,7 +23,7 @@ const ACCEL_XOUT_H = 0x3B; // Start of accelerometer data
 
 // MQTT topics
 const topics = {
-  console: 'controller/console',
+  console: 'console/log',
   accelData: 'controller/accelData',
   tiltAngles: 'controller/tiltAngles',
   motorLeft: 'controller/motorPWM/left',
@@ -50,9 +50,9 @@ function sendMQTTMessage(topic, object) {
 function wakeUpMPU6050() {
   wire.writeBytes(PWR_MGMT_1, [0x00], (err) => {
     if (err) {
-      sendMQTTMessage(topics.console, { message: "Error waking up MPU6050", error: err });
+      sendMQTTMessage(topics.console, { source:"pid", message: "Error waking up MPU6050", error: err });
     } else {
-      sendMQTTMessage(topics.console, { message: "MPU6050 awake" });
+      sendMQTTMessage(topics.console, { source:"pid", message: "MPU6050 awake" });
     }
   });
 }
@@ -93,14 +93,14 @@ async function getTiltAngles() {
     const accelData = await readAccelerometer();
     const { accelX, accelY, accelZ } = accelData;
     console.log("accelData", accelData);
-    sendMQTTMessage(topics.accelData, accelData);
+    sendMQTTMessage(topics.accelData, { accelData, source:'pid'});
 
     const xAngle = Math.atan2(accelY, accelZ) * (180 / Math.PI);
     const yAngle = Math.atan2(accelX, accelZ) * (180 / Math.PI);
 
     return { xAngle, yAngle };
   } catch (error) {
-    sendMQTTMessage(topics.console, { message: `Error getting tilt angles: ${error}` });
+    sendMQTTMessage(topics.console, { source:"pid", message: `Error getting tilt angles: ${error}` });
     return { xAngle: 0, yAngle: 0 };
   }
 }
@@ -136,8 +136,8 @@ function updateMotors(leftOutput, rightOutput) {
   const clampedLeftOutput = Math.max(0, Math.min(255, Math.round(127 + leftOutput))); // Center at 127 for both directions
   const clampedRightOutput = Math.max(0, Math.min(255, Math.round(127 + rightOutput)));
 
-  sendMQTTMessage(topics.motorLeft, { value: clampedLeftOutput });
-  sendMQTTMessage(topics.motorRight, { value: clampedRightOutput });
+  sendMQTTMessage(topics.motorLeft, { source: 'pid', value: clampedLeftOutput });
+  sendMQTTMessage(topics.motorRight, { source: 'pid', value: clampedRightOutput });
 
   console.log(`Left Motor PWM: ${clampedLeftOutput}, Right Motor PWM: ${clampedRightOutput}`);
 }
@@ -152,8 +152,8 @@ function adjustServos(xAngle) {
   const clampedLeftPulseWidth = Math.max(500, Math.min(2500, leftPulseWidth));
   const clampedRightPulseWidth = Math.max(500, Math.min(2500, rightPulseWidth));
 
-  sendMQTTMessage(topics.servoLeft, { value: clampedLeftPulseWidth}); // Corrected message format
-  sendMQTTMessage(topics.servoRight, { value: clampedRightPulseWidth}); // Corrected message format
+  sendMQTTMessage(topics.servoLeft, { source:'pid', value: clampedLeftPulseWidth}); // Corrected message format
+  sendMQTTMessage(topics.servoRight, { source:'pid', value: clampedRightPulseWidth}); // Corrected message format
 
   console.log(`Left Servo Pulse Width: ${clampedLeftPulseWidth}µs`);
   console.log(`Right Servo Pulse Width: ${clampedRightPulseWidth}µs`);
@@ -176,7 +176,7 @@ async function controlLoop() {
   previousErrorRight = pidRight.previousError;
   integralRight = pidRight.integral;
 
-  sendMQTTMessage(topics.tiltAngles, tiltAngles);
+  sendMQTTMessage(topics.tiltAngles, {tiltAngles, source:'pid'});
 
   // Update motors with the adjusted outputs
   updateMotors(pidLeft.output, pidRight.output);

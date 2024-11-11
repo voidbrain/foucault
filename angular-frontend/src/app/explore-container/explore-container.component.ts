@@ -67,6 +67,16 @@ export class ExploreContainerComponent implements AfterViewInit {
   isEnabled: boolean = true;
   consoleMessages: string[] = [];
 
+  topics = {
+    console: 'console/log',
+    accelData: 'controller/accelData',
+    tiltAngles: 'controller/tiltAngles',
+    motorLeft: 'controller/motorPWM/left',
+    motorRight: 'controller/motorPWM/right',
+    servoLeft: 'controller/servoPulseWidth/left',
+    servoRight: 'controller/servoPulseWidth/right'
+  };
+
   // Three.js objects
   scene!: THREE.Scene;
   camera!: THREE.PerspectiveCamera;
@@ -76,9 +86,14 @@ export class ExploreContainerComponent implements AfterViewInit {
   rightWheel!: THREE.Mesh;
   leftLeg!: THREE.Group;
   rightLeg!: THREE.Group;
+  balanceSensor!: THREE.Mesh;
 
-  @ViewChild('threejsContainer', { static: true })
-  threejsContainer!: ElementRef<HTMLDivElement>;
+  scenes: THREE.Scene[] = [];
+  cameras: THREE.PerspectiveCamera[] = [];
+  renderers: THREE.WebGLRenderer[] = [];
+
+  @ViewChild('threejsContainer', { static: true }) threejsContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('cartesianContainer', { static: true }) cartesianContainer!: ElementRef<HTMLDivElement>;
 
   constructor(
     private socketService: SocketService,
@@ -87,6 +102,8 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.setupThreeJS();
+    this.setupCartesianPlane();
+    this.animate();
     this.setupSocket();
   }
 
@@ -98,14 +115,52 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
   }
 
-  // Set up Three.js scene
-  setupThreeJS() {
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(
+  setupCartesianPlane() {
+    // Set up Cartesian scene, camera, and renderer
+    const cartesianScene = new THREE.Scene();
+    const cartesianCamera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
+    );
+    const cartesianRenderer = new THREE.WebGLRenderer();
+    cartesianRenderer.setSize(window.innerWidth / 2, window.innerHeight / 2);
+  
+    // Append renderer to the div with id 'cartesian-container'
+    const cartesianContainer = this.cartesianContainer?.nativeElement;
+    if (cartesianContainer) {
+      cartesianContainer.appendChild(cartesianRenderer.domElement);
+    }
+  
+    // Create a plane with two colors on each side
+    const planeGeometry = new THREE.PlaneGeometry(10, 10);
+    const frontMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.FrontSide });
+    const backMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.BackSide });
+    const plane = new THREE.Mesh(planeGeometry, [frontMaterial, backMaterial]);
+  
+    // Rotate and add plane to scene
+    plane.rotation.x = -Math.PI / 2; // Align with the ground
+    cartesianScene.add(plane);
+  
+    // Set camera position
+    cartesianCamera.position.set(5, 5, 5);
+    cartesianCamera.lookAt(cartesianScene.position);
+
+    // Add scene, camera, and renderer to the arrays for the animate loop
+    this.scenes.push(cartesianScene);
+    this.cameras.push(cartesianCamera);
+    this.renderers.push(cartesianRenderer);
+  }
+
+  // Set up Three.js scene
+  setupThreeJS() {    
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
     );
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -113,90 +168,114 @@ export class ExploreContainerComponent implements AfterViewInit {
     // Append renderer to the div with id 'threejs-container'
     const container = this.threejsContainer?.nativeElement;
     if (container) {
-      container.appendChild(this.renderer.domElement);
+        container.appendChild(this.renderer.domElement);
     }
 
-    // Robot body
+    // Robot main body
     this.robotBody = new THREE.Mesh(
-      new THREE.BoxGeometry(2, 0.5, 1),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+        new THREE.BoxGeometry(2, 1, 1),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    this.robotBody.position.y = 1;
+    this.robotBody.position.y = 1.5;
     this.scene.add(this.robotBody);
 
-    // Left wheel
+    // Balance sensor
+    const sensorGeometry = new THREE.SphereGeometry(0.1, 32, 32);
+    const sensorMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    this.balanceSensor = new THREE.Mesh(sensorGeometry, sensorMaterial);
+    this.balanceSensor.position.set(0, 2, 0); // Positioned at the top center of the main body
+    this.robotBody.add(this.balanceSensor);
+
+    // Wheels with motors
     this.leftWheel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
-      new THREE.MeshBasicMaterial({ color: 0x0000ff })
+        new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
+        new THREE.MeshBasicMaterial({ color: 0x0000ff })
     );
-    this.leftWheel.position.set(-0.75, 0.25, 0.5);
-    this.leftWheel.rotation.x = Math.PI / 2;
-    this.scene.add(this.leftWheel);
+    this.leftWheel.position.set(-0.8, 0.5, 0);
+    this.leftWheel.rotation.z = Math.PI / 2;
+    this.robotBody.add(this.leftWheel);
 
-    // Right wheel
     this.rightWheel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
-      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+        new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
+        new THREE.MeshBasicMaterial({ color: 0xff0000 })
     );
-    this.rightWheel.position.set(0.75, 0.25, 0.5);
-    this.rightWheel.rotation.x = Math.PI / 2;
-    this.scene.add(this.rightWheel);
+    this.rightWheel.position.set(0.8, 0.5, 0);
+    this.rightWheel.rotation.z = Math.PI / 2;
+    this.robotBody.add(this.rightWheel);
 
-    // Left leg setup
+    // Left leg with two-piece thigh
     this.leftLeg = new THREE.Group();
-    const leftThigh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.8, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+    const leftUpperThigh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.5, 0.2),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    leftThigh.position.set(0, 0.4, 0);
-    this.leftLeg.add(leftThigh);
+    leftUpperThigh.position.set(0, 0.25, 0);
+    this.leftLeg.add(leftUpperThigh);
 
-    const leftShin = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.8, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+    const leftLowerThigh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.5, 0.2),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    leftShin.position.set(0, -0.4, 0);
-    this.leftLeg.add(leftShin);
+    leftLowerThigh.position.set(0, -0.25, 0);
+    leftUpperThigh.add(leftLowerThigh);
 
-    this.leftLeg.position.set(-1, 0, 0);
+    // Left ankle with servo
+    const leftAnkleServo = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.2, 0.2),
+        new THREE.MeshBasicMaterial({ color: 0xffa500 })
+    );
+    leftAnkleServo.position.set(0, -0.25, 0);
+    leftLowerThigh.add(leftAnkleServo);
+
+    this.leftLeg.position.set(-1, 0.5, 0);
     this.scene.add(this.leftLeg);
 
-    // Right leg setup
+    // Right leg with two-piece thigh
     this.rightLeg = new THREE.Group();
-    const rightThigh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.8, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+    const rightUpperThigh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.5, 0.2),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    rightThigh.position.set(0, 0.4, 0);
-    this.rightLeg.add(rightThigh);
+    rightUpperThigh.position.set(0, 0.25, 0);
+    this.rightLeg.add(rightUpperThigh);
 
-    const rightShin = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.8, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+    const rightLowerThigh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.5, 0.2),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    rightShin.position.set(0, -0.4, 0);
-    this.rightLeg.add(rightShin);
+    rightLowerThigh.position.set(0, -0.25, 0);
+    rightUpperThigh.add(rightLowerThigh);
 
-    this.rightLeg.position.set(1, 0, 0);
+    // Right ankle with servo
+    const rightAnkleServo = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.2, 0.2),
+        new THREE.MeshBasicMaterial({ color: 0xffa500 })
+    );
+    rightAnkleServo.position.set(0, -0.25, 0);
+    rightLowerThigh.add(rightAnkleServo);
+
+    this.rightLeg.position.set(1, 0.5, 0);
     this.scene.add(this.rightLeg);
 
-    // Set camera position
+    // Set camera position and add OrbitControls
     this.camera.position.z = 5;
-
-    // Add OrbitControls to allow mouse drag for rotation
     const controls = new OrbitControls(this.camera, this.renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.25;
     controls.screenSpacePanning = false;
     controls.maxPolarAngle = Math.PI / 2; // Restrict to positive Z axis rotation
-    this.animate();
+
+    // Add scene, camera, and renderer to the arrays for the animate loop
+    this.scenes.push(this.scene);
+    this.cameras.push(this.camera);
+    this.renderers.push(this.renderer);
   }
 
-  // Animation loop
   animate() {
-    requestAnimationFrame(() => this.animate());
-    this.renderer.render(this.scene, this.camera);
+      requestAnimationFrame(this.animate.bind(this));
+      this.renderer.render(this.scene, this.camera);
   }
+
 
   setupSocket() {
     if (this.socket === null) {
@@ -207,39 +286,39 @@ export class ExploreContainerComponent implements AfterViewInit {
       this.status = 'Connected';
     });
 
-    this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
-      const { topic, data: parsedMessage } = message;
+    this.socket.on('mqtt-message', (message: { topic: string; data: { source: string; data: any} }) => {
+      const { topic, data: {data: parsedMessage, source} } = message;
       switch (topic) {
-        case 'controller/accelData':
+        case this.topics.accelData:
           this.handleAccelData(parsedMessage);
           break;
 
-        case 'controller/tiltAngles':
+        case this.topics.tiltAngles:
           this.handleTiltAngles(parsedMessage);
           break;
 
-        case 'controller/console':
-          this.handleConsoleMessage(topic, parsedMessage);
-          break;
-
-        case 'controller/motorPWM/left':
+        case this.topics.motorLeft:
           this.handleMotorPWM('left', parsedMessage);
           break;
 
-        case 'controller/motorPWM/right':
+        case this.topics.motorRight:
           this.handleMotorPWM('right', parsedMessage);
           break;
 
-        case 'controller/servoPulseWidth/left':
+        case this.topics.servoLeft:
           this.handleServoPulseWidth('left', parsedMessage);
           break;
 
-        case 'controller/servoPulseWidth/right':
+        case this.topics.servoRight:
           this.handleServoPulseWidth('right', parsedMessage);
           break;
 
         default:
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
+          break;
+
+        case this.topics.console:
+          this.handleConsoleMessage(topic, parsedMessage, source);
           break;
       }
     });
@@ -272,9 +351,8 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.updateTiltAngles(data);
   }
 
-  handleConsoleMessage(topic: string, data: { message: string }) {
-    const { message } = data;
-    console.log(`Console Topic: ${topic}, Message: ${message}`);
+  handleConsoleMessage(topic: string, message: string, from: string ) {
+    console.log(`Console Topic: ${topic}, From: ${from}, Message: ${message}`);
     this.logToConsole(message);
   }
 
@@ -335,13 +413,9 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
   }
 
-  sendMqttMessage(topic: string, payload: any) {
-    this.socketService.publishMqttMessage(topic, payload);
-  }
-
   sendControlCommand(command: string) {
     if (this.socket !== null) {
-      this.socket.emit('move', { direction: command });
+      this.socket.emit('move', { direction: command, from: "Angular FE" });
     } else {
       console.warn('Socket is null');
     }

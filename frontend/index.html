@@ -67,6 +67,16 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+
+    const topics = {
+      console: 'console/log',
+      accelData: 'controller/accelData',
+      tiltAngles: 'controller/tiltAngles',
+      motorLeft: 'controller/motorPWM/left',
+      motorRight: 'controller/motorPWM/right',
+      servoLeft: 'controller/servoPulseWidth/left',
+      servoRight: 'controller/servoPulseWidth/right'
+    };
   
     // Listen for mqtt-message and update corresponding sections
     socket.on('mqtt-message', function(data) {
@@ -78,25 +88,25 @@
   
       // Update the content of each section based on the topic
       switch (topic) {
-        case 'controller/console':
+        case topics.console:
           document.getElementById('console-content').textContent = message;
           break;
-        case 'controller/accelData':
+        case topics.accelData:
           document.getElementById('accelData-content').textContent = message;
           break;
-        case 'controller/tiltAngles':
+        case topics.tiltAngles:
           document.getElementById('tiltAngles-content').textContent = message;
           break;
-        case 'controller/motorPWM/left':
+        case topics.motorLeft:
           document.getElementById('motorLeft-content').textContent = `Left Motor PWM: ${message}`;
           break;
-        case 'controller/motorPWM/right':
+        case topics.motorRight:
           document.getElementById('motorRight-content').textContent = `Right Motor PWM: ${message}`;
           break;
-        case 'controller/servoPulseWidth/left':
+        case topics.servoLeft:
           document.getElementById('servoLeft-content').textContent = `Left Servo Pulse Width: ${message}`;
           break;
-        case 'controller/servoPulseWidth/right':
+        case topics.servoRight:
           document.getElementById('servoRight-content').textContent = `Right Servo Pulse Width: ${message}`;
           break;
         default:

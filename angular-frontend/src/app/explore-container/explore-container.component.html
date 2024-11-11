@@ -10,6 +10,8 @@
       <!-- Three.js Canvas on the left side -->
       <ion-col size="6">
         <div class="container">
+          <div id="cartesian-container" #cartesianContainer style="width: 100%; height: 100%;"></div>
+ 
           <div id="threejs-container" #threejsContainer style="width: 100%; height: 100%;"></div>
         </div>
       </ion-col>
@@ -29,36 +31,24 @@
           </ion-card>
       
           <ion-card>
-            <ion-card-header>
-              <ion-card-title>Tilt Data</ion-card-title>
-            </ion-card-header>
             <ion-card-content>
+              Tilt Data
               <ion-text id="tiltAngles-content">Loading...</ion-text>
             </ion-card-content>
-          </ion-card>
-        
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title>Accelerometer Data</ion-card-title>
-            </ion-card-header>
+          
+            Accelerometer Data
             <ion-card-content>
               <ion-text id="accelData-content">Loading...</ion-text>
             </ion-card-content>
           </ion-card>
 
           <ion-card>
-            <ion-card-header>
-              <ion-card-title>Motor PWM</ion-card-title>
-            </ion-card-header>
+            Motor PWM
             <ion-card-content>
               <ion-text id="motor1-content">Loading...</ion-text>
             </ion-card-content>
-          </ion-card>
-        
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title>Servo Pulse Width</ion-card-title>
-            </ion-card-header>
+          
+            Servo Pulse Width
             <ion-card-content>
               <ion-text id="servo1-content">Loading...</ion-text>
             </ion-card-content>

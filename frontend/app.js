@@ -23,7 +23,7 @@ mqttClient.on('connect', () => {
 
 // MQTT topics
 const topics = {
-  console: 'controller/console',
+  console: 'console/log',
   accelData: 'controller/accelData',
   tiltAngles: 'controller/tiltAngles',
   motorLeft: 'controller/motorPWM/left',
@@ -85,8 +85,6 @@ app.get('/detect', (req, res) => {
   res.send('Object detection started');
 });
 
-// Serve static files if needed (comment out if not applicable)
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Start the HTTP server
 const PORT = process.env.PORT || 8080;

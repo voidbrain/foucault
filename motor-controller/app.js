@@ -11,7 +11,7 @@ const topics = {
   servoRight: 'controller/servoPulseWidth/right',
 
   //send
-  console: 'controller/console',
+  console: 'console/log',
 };
 
 // Setup MQTT connection
@@ -69,36 +69,36 @@ function handleMqttMessage(topic, value) {
     case topics.servoLeft:
       if (isValidServo) {
         servoLeft.servoWrite(value);
-        sendMQTTMessage(topics.console, `Left Servo set to: ${value}`);
+        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Left Servo set to: ${value}`});
       } else {
-        sendMQTTMessage(topics.console, `Invalid value for Left Servo: ${value}`);
+        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Invalid value for Left Servo: ${value}`});
       }
       break;
 
     case topics.servoRight:
       if (isValidServo) {
         servoRight.servoWrite(value);
-        sendMQTTMessage(topics.console, `Right Servo set to: ${value}`);
+        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Right Servo set to: ${value}`});
       } else {
-        sendMQTTMessage(topics.console, `Invalid value for Right Servo: ${value}`);
+        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Invalid value for Right Servo: ${value}`});
       }
       break;
 
     case topics.motorLeft:
       if (isValidMotor) {
         motorLeft.pwmWrite(value);
-        sendMQTTMessage(topics.console, `Left Motor PWM set to: ${value}`);
+        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Left Motor PWM set to: ${value}`});
       } else {
-        sendMQTTMessage(topics.console, `Invalid value for Left Motor PWM: ${value}`);
+        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Invalid value for Left Motor PWM: ${value}`});
       }
       break;
 
     case topics.motorRight:
       if (isValidMotor) {
         motorRight.pwmWrite(value);
-        sendMQTTMessage(topics.console, `Right Motor PWM set to: ${value}`);
+        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Right Motor PWM set to: ${value}`});
       } else {
-        sendMQTTMessage(topics.console, `Invalid value for Right Motor PWM: ${value}`);
+        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Invalid value for Right Motor PWM: ${value}`});
       }
       break;
 
