@@ -219,7 +219,7 @@ export class ExploreContainerComponent implements AfterViewInit {
           break;
 
         case 'controller/console':
-          this.handleConsoleMessage(parsedMessage);
+          this.handleConsoleMessage(topic, parsedMessage);
           break;
 
         case 'controller/motorPWM/left':
@@ -245,28 +245,37 @@ export class ExploreContainerComponent implements AfterViewInit {
     });
   }
 
-  updateTiltAngles(data: { accelX: number; accelY: number; accelZ: number }) {
+  updateTiltAngles(data: { xAngle: number; yAngle: number }) {
     document.getElementById(
       'tiltAngles-content'
-    )!.innerHTML = `X: ${data.accelX}°, Y: ${data.accelY}°, , Z: ${data.accelZ}°`;
+    )!.innerHTML = `X: ${data.xAngle}°, Y: ${data.yAngle}°`;
+    this.cdr.detectChanges();
+  }
+
+  updateAccelData(data: { accelX: number; accelY: number; accelZ: number }) {
+    document.getElementById(
+      'accelData-content'
+    )!.innerHTML = `X: ${data.accelX}°, Y: ${data.accelY}°, Z: ${data.accelZ}°`;
     this.cdr.detectChanges();
   }
 
   handleAccelData(data: { accelX: number; accelY: number; accelZ: number }) {
     const { accelX, accelY, accelZ } = data;
     console.log(`Accel Data - X: ${accelX}, Y: ${accelY}, Z: ${accelZ}`);
-    this.updateTiltAngles(data);
+    this.updateAccelData(data);
     this.updateRobotTilt(data);
   }
 
   handleTiltAngles(data: { xAngle: number; yAngle: number }) {
     const { xAngle, yAngle } = data;
-    console.log(`Tilt Angles - X: ${xAngle}, Y: ${yAngle}`);
+    console.log(`Tilt Angles - : ${xAngle}, Y: ${yAngle}`);
+    this.updateTiltAngles(data);
   }
 
-  handleConsoleMessage(data: { message: string }) {
+  handleConsoleMessage(topic: string, data: { message: string }) {
     const { message } = data;
-    console.log(`Console Message: ${message}`);
+    console.log(`Console Topic: ${topic}, Message: ${message}`);
+    this.logToConsole(message);
   }
 
   handleMotorPWM(wheel: string, data: { leftPWM: number; rightPWM: number }) {
@@ -336,7 +345,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     } else {
       console.warn('Socket is null');
     }
-    this.logToConsole(`Moving: ${command}`);
+    // this.logToConsole(`Moving: ${command}`);
   }
 
   logToConsole(message: string) {

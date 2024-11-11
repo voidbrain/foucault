@@ -9,7 +9,9 @@
     <ion-row>
       <!-- Three.js Canvas on the left side -->
       <ion-col size="6">
-        <div id="threejs-container" #threejsContainer style="width: 100%; height: 100%;"></div>
+        <div class="container">
+          <div id="threejs-container" #threejsContainer style="width: 100%; height: 100%;"></div>
+        </div>
       </ion-col>
 
       <ion-col size="6">
@@ -19,6 +21,10 @@
             </ion-card-header>
             <ion-card-content>
               <ion-text color="primary">{{ status }}</ion-text>
+
+              <ion-button (click)="startObjectDetection()">Obj Detection</ion-button>
+              <ion-toggle [(ngModel)]="isEnabled" (ion-change)="toggleEnable($event)">Enable Control</ion-toggle>
+          
             </ion-card-content>
           </ion-card>
       
@@ -83,26 +89,24 @@
             
             <ion-grid>
               <ion-row>
-                <ion-col size="12">
+                <ion-col size="12" class="ion-text-center">
                   <ion-button (click)="sendControlCommand('forward')">W</ion-button>
                 </ion-col>
               </ion-row>
               <ion-row>
-                <ion-col size="4">
+                <ion-col size="4" class="ion-text-center">
                   <ion-button (click)="sendControlCommand('left')">A</ion-button>
                 </ion-col>
-                <ion-col size="4">
+                <ion-col size="4" class="ion-text-center">
                   <ion-button (click)="sendControlCommand('backward')">S</ion-button>
                 </ion-col>
-                <ion-col size="4">
+                <ion-col size="4" class="ion-text-center">
                   <ion-button (click)="sendControlCommand('right')">D</ion-button>
                 </ion-col>
               </ion-row>
             </ion-grid>
           
-            <ion-button (click)="startObjectDetection()">Start Object Detection</ion-button>
-            <ion-toggle [(ngModel)]="isEnabled" (ion-change)="toggleEnable($event)">Enable Control</ion-toggle>
-          </ion-card>
+            </ion-card>
 
       </ion-col>
     </ion-row>

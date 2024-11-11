@@ -4,10 +4,13 @@ const { exec } = require('child_process');
 
 // MQTT Topics object for cleaner management
 const topics = {
+  //listen
   motorLeft: 'controller/motorPWM/left',
   motorRight: 'controller/motorPWM/right',
   servoLeft: 'controller/servoPulseWidth/left',
   servoRight: 'controller/servoPulseWidth/right',
+
+  //send
   console: 'controller/console',
 };
 
