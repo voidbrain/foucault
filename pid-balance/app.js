@@ -92,7 +92,7 @@ async function getTiltAngles() {
   try {
     const accelData = await readAccelerometer();
     const { accelX, accelY, accelZ } = accelData;
-    console.log("accelData", accelData);
+    console.log("[PID] accelData", accelData);
     sendMQTTMessage(topics.accelData, { accelData, source:'pid'});
 
     const xAngle = Math.atan2(accelY, accelZ) * (180 / Math.PI);
@@ -139,7 +139,7 @@ function updateMotors(leftOutput, rightOutput) {
   sendMQTTMessage(topics.motorLeft, { source: 'pid', value: clampedLeftOutput });
   sendMQTTMessage(topics.motorRight, { source: 'pid', value: clampedRightOutput });
 
-  console.log(`Left Motor PWM: ${clampedLeftOutput}, Right Motor PWM: ${clampedRightOutput}`);
+  console.log(`[PID] Left Motor PWM: ${clampedLeftOutput}, Right Motor PWM: ${clampedRightOutput}`);
 }
 
 // Function to adjust servos based on height difference calculation
@@ -155,8 +155,8 @@ function adjustServos(xAngle) {
   sendMQTTMessage(topics.servoLeft, { source:'pid', value: clampedLeftPulseWidth}); // Corrected message format
   sendMQTTMessage(topics.servoRight, { source:'pid', value: clampedRightPulseWidth}); // Corrected message format
 
-  console.log(`Left Servo Pulse Width: ${clampedLeftPulseWidth}µs`);
-  console.log(`Right Servo Pulse Width: ${clampedRightPulseWidth}µs`);
+  console.log(`[pid] Left Servo Pulse Width: ${clampedLeftPulseWidth}µs`);
+  console.log(`[pid] Right Servo Pulse Width: ${clampedRightPulseWidth}µs`);
 }
 
 // Run control loop at regular intervals (e.g., 200ms)

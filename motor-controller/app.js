@@ -103,6 +103,6 @@ function handleMqttMessage(topic, value) {
       break;
 
     default:
-      console.log(`Unhandled topic: ${topic}`);
+      // console.log(`Unhandled topic: ${topic}`);
   }
 }
