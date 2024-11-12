@@ -92,54 +92,71 @@
 
         <ion-card>
           <ion-card-header>
-            <ion-card-title>Tilt Data</ion-card-title>
+            <ion-card-title>Raw Data</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            Tilt Data
-            <ion-text id="tiltAngles-content">Loading...</ion-text>
+
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Accelerometer Data</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-text id="accelData-content">Loading...</ion-text>
+              </ion-card-content>
+            </ion-card>
+
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Tilt Data</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                Tilt Data
+                <ion-text id="tiltAngles-content">Loading...</ion-text>
+              </ion-card-content>
+            </ion-card>
           </ion-card-content>
         </ion-card>
 
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Accelerometer Data</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-text id="accelData-content">Loading...</ion-text>
-          </ion-card-content>
-        </ion-card>
 
         <ion-card>
           <ion-card-header>
-            <ion-card-title>Motor PWM</ion-card-title>
+            <ion-card-title>Output for Motors</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            <div id="motor-content">
-              <span id="left-motor"
-                >Left Motor PWM: <span id="left-motor-value">0</span></span
-              ><br />
-              <span id="right-motor"
-                >Right Motor PWM: <span id="right-motor-value">0</span></span
-              >
-            </div>
-          </ion-card-content>
-        </ion-card>
 
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Servo Pulse Width</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <div id="servo-content">
-              <span id="left-servo"
-                >Left Servo Pulse Width:
-                <span id="left-servo-value">0</span></span
-              ><br />
-              <span id="right-servo"
-                >Right Servo Pulse Width:
-                <span id="right-servo-value">0</span></span
-              >
-            </div>
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Motor PWM</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div id="motor-content">
+                  <span id="left-motor"
+                    >Left Motor PWM: <span id="left-motor-value">_</span></span
+                  ><br />
+                  <span id="right-motor"
+                    >Right Motor PWM: <span id="right-motor-value">_</span></span
+                  >
+                </div>
+              </ion-card-content>
+            </ion-card>
+
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Servo Pulse Width</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div id="servo-content">
+                  <span id="left-servo"
+                    >Left Servo Pulse Width:
+                    <span id="left-servo-value">_</span></span
+                  ><br />
+                  <span id="right-servo"
+                    >Right Servo Pulse Width:
+                    <span id="right-servo-value">_</span></span
+                  >
+                </div>
+              </ion-card-content>
+            </ion-card>
           </ion-card-content>
         </ion-card>
 

@@ -79,7 +79,6 @@ export class ExploreContainerComponent implements AfterViewInit {
   scene!: THREE.Scene;
   camera!: THREE.PerspectiveCamera;
   renderer!: THREE.WebGLRenderer;
-  robotBody!: THREE.Mesh;
   referencePlane!: THREE.Mesh;
   leftWheel!: THREE.Mesh;
   rightWheel!: THREE.Mesh;
@@ -113,6 +112,30 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.animateTHREERobot();
     this.setupSocket();
     this.adjustTHREERobotHeight('HEIGHT_MID');
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      let command;
+  
+      switch (key) {
+          case 'w':
+              command = "forward";
+              break;
+          case 'a':
+              command = "left";
+              break;
+          case 's':
+              command = "backward";
+              break;
+          case 'd':
+              command = "right";
+              break;
+          default:
+              return; // Ignore other keys
+      }
+  
+      this.sendControlCommand(command);
+  });
   }
 
   adjustHeightEventFromSlider(event: CustomEvent) {
@@ -126,7 +149,7 @@ export class ExploreContainerComponent implements AfterViewInit {
       case 'HEIGHT_LOW':
         targetHeight = this.HEIGHT_LOW;
         offsetHeight = -0.8;
-        this.updateTHREERobotBody(this.BODY_HEIGHT_LOW, offsetHeight);
+        this.updateTHREERobotBody(this.HEIGHT_LOW, offsetHeight);
         break;
       case 'HEIGHT_MID':
         targetHeight = this.HEIGHT_MID;
@@ -149,7 +172,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateTHREERobotBody(targetHeight: number, offsetHeight: number) {
-    this.robotBody.position.y = targetHeight + offsetHeight;
+    
     this.referencePlane.position.y = targetHeight + offsetHeight + 0.6;
   }
 
@@ -254,13 +277,6 @@ export class ExploreContainerComponent implements AfterViewInit {
       this.renderer.setSize(width, height);
       container.appendChild(this.renderer.domElement);
     }
-
-    this.robotBody = new THREE.Mesh(
-      new THREE.BoxGeometry(2, 1, 1),
-      new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    );
-    this.robotBody.position.y = 1;
-    this.scene.add(this.robotBody);
 
     this.referencePlane = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 1),
@@ -367,16 +383,14 @@ export class ExploreContainerComponent implements AfterViewInit {
     });
 
     this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
-      console.log(message);
       const {
         topic,
         data: { ...parsedMessage },
       } = message;
-      console.log(topic, parsedMessage);
 
       switch (topic) {
         case this.topics.accelData:
-          this.handleAccelData(parsedMessage as { accelX:number, accelY:number, accelZ:number });
+          this.handleAccelData(parsedMessage as { accelX:any, accelY:any, accelZ:any });
           break;
 
         case this.topics.tiltAngles:
@@ -410,7 +424,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     });
   }
 
-  handleAccelData(data: { accelX: number; accelY: number; accelZ: number }) {
+  handleAccelData(data: { accelX: any; accelY: any; accelZ: any }) {
     this.updateConsoleAccelData(data);
     this.updateTHREERobotTilt(data);
   }
@@ -426,13 +440,12 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   handleMotorPWM(wheel: string, data: { value: number }) {
     const value = data;
-    console.log("//", wheel, data) 
+
     // Update the motor PWM for the specified wheel
     this.updateTHREERobotMotorPWM(wheel, value);
 
     // Selectively update the left or right motor value in the HTML
     const motorValueElement = document.getElementById(`${wheel}-motor-value`);
-    console.log("!!!",motorValueElement, `${data.value}`)
     if (motorValueElement) {
       
       motorValueElement.innerText = `${data.value}`;
@@ -441,19 +454,19 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  handleServoPulseWidth(servo: string, data: { value: number }) {
-    console.log("//", servo, data)
-    // console.log(`${servo} Servo Pulse Width: ${data.value}`);
-
-    // Pass only the relevant height for the servo being updated
-    if (servo === 'left') {
+  handleServoPulseWidth(servo: string, data: any) {
+    if (servo === 'left' && this.rightLeg) {
+      const rightLegPosition = this.rightLeg ? this.rightLeg.position : null;
+      const rightHeight = rightLegPosition ? rightLegPosition.y : 0;
       this.updateTHREERobotWheelMovement({
         leftHeight: data.value,
-        rightHeight: this.rightLeg?.position?.y ?? 0,
+        rightHeight: rightHeight,
       });
-    } else if (servo === 'right') {
+    } else if (servo === 'right' && this.leftLeg) {
+      const leftLegPosition = this.leftLeg ? this.leftLeg.position : null;
+      const leftHeight = leftLegPosition ? leftLegPosition.y : 0;
       this.updateTHREERobotWheelMovement({
-        leftHeight: this.leftLeg?.position?.y ?? 0,
+        leftHeight: leftHeight,
         rightHeight: data.value,
       });
     }
@@ -466,7 +479,6 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateTHREERobotMotorPWM(wheel: string, data: { value: number} ) {
-    console.log("updateTHREERobotMotorPWM",wheel, data)
     const rotationIncrement = THREE.MathUtils.degToRad(data.value);
     if (wheel === 'left' && this.leftWheel) {
       this.leftWheel.rotation.z += rotationIncrement;
@@ -482,10 +494,10 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  updateConsoleAccelData(accelData: { accelX: number; accelY: number; accelZ: number }) {
+  updateConsoleAccelData(data:any) {
     document.getElementById(
       'accelData-content'
-    )!.innerHTML = `X: ${accelData.accelX}°, Y: ${accelData.accelY}°, Z: ${accelData.accelZ}°`;
+    )!.innerHTML = `X: ${data.accelData.accelX}°, Y: ${data.accelData.accelY}°, Z: ${data.accelData.accelZ}°`;
     this.cdr.detectChanges();
   }
 
@@ -496,8 +508,8 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   updateTHREERobotTilt(data: { accelX: number; accelY: number; accelZ: number }) {
     const { accelX, accelY } = data;
-    this.robotBody.rotation.x = THREE.MathUtils.degToRad(accelX);
-    this.robotBody.rotation.y = THREE.MathUtils.degToRad(accelY);
+    this.referencePlane.rotation.x = THREE.MathUtils.degToRad(accelX);
+    this.referencePlane.rotation.y = THREE.MathUtils.degToRad(accelY);
   }
 
   toggleEnable(event: any) {
