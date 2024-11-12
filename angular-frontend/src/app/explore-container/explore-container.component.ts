@@ -81,6 +81,12 @@ export class ExploreContainerComponent implements AfterViewInit {
   HEIGHT_MID = 1.5; // Mid height
   HEIGHT_HIGH = 2;  // High height
 
+  heights = [
+    "HEIGHT_LOW",
+"HEIGHT_MID",
+"HEIGHT_HIGH"
+  ];
+
   @ViewChild('threejsContainer', { static: true })
   threejsContainer!: ElementRef<HTMLDivElement>;
 
@@ -94,7 +100,9 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.setupThreeJS();
     //this.setupCartesianPlane();
     this.setupSocket();
-    this.adjustHeight("HEIGHT_MID")
+  }
+  adjustHeightEvent(event: CustomEvent){
+    this.adjustHeight(this.heights[event.detail.value])
   }
 
   updateLegServos(leg: THREE.Group, height: number) {
@@ -122,7 +130,8 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
 
-  adjustHeight(height: string) {
+  adjustHeight(value: string) {
+    const height = value;
     console.log(height)
     let targetHeight = this.HEIGHT_MID; // Default to mid height
 
