@@ -1,5 +1,4 @@
 import { io, Socket } from 'socket.io-client';
-import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
 import {
   Component,
   AfterViewInit,
@@ -79,6 +78,8 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   @ViewChild('threejsContainer', { static: true })
   threejsContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('cartesianContainer', { static: true })
+  cartesianContainer!: ElementRef<HTMLDivElement>;
 
   constructor(
     private socketService: SocketService,
@@ -87,6 +88,7 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.setupThreeJS();
+    this.setupCartesianPlane();
     this.setupSocket();
   }
 
@@ -97,6 +99,47 @@ export class ExploreContainerComponent implements AfterViewInit {
       console.warn('Socket is null');
     }
   }
+
+  setupCartesianPlane() {
+    // Set up Cartesian scene, camera, and renderer
+    const cartesianScene = new THREE.Scene();
+    const cartesianCamera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    const cartesianRenderer = new THREE.WebGLRenderer();
+    cartesianRenderer.setSize(window.innerWidth / 2, window.innerHeight / 2);
+
+    // Append renderer to the div with id 'cartesian-container'
+    const cartesianContainer = this.cartesianContainer?.nativeElement;
+    if (cartesianContainer) {
+      cartesianContainer.appendChild(cartesianRenderer.domElement);
+    }
+
+    // Create a plane with two colors on each side
+    const planeGeometry = new THREE.PlaneGeometry(10, 10);
+    const frontMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.FrontSide });
+    const backMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.BackSide });
+    const plane = new THREE.Mesh(planeGeometry, [frontMaterial, backMaterial]);
+
+    // Rotate and add plane to scene
+    plane.rotation.x = -Math.PI / 2; // Align with the ground
+    cartesianScene.add(plane);
+
+    // Set camera position
+    cartesianCamera.position.set(5, 5, 5);
+    cartesianCamera.lookAt(cartesianScene.position);
+
+    // Render loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      cartesianRenderer.render(cartesianScene, cartesianCamera);
+    };
+    animate();
+  }
+
 
   // Set up Three.js scene
   setupThreeJS() {
@@ -118,67 +161,115 @@ export class ExploreContainerComponent implements AfterViewInit {
 
     // Robot body
     this.robotBody = new THREE.Mesh(
-      new THREE.BoxGeometry(2, 0.5, 1),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+      new THREE.BoxGeometry(2, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xff0000 })
     );
     this.robotBody.position.y = 1;
     this.scene.add(this.robotBody);
 
-    // Left wheel
+    // Reference plane for stabilization on top of the body
+    const referencePlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 1),
+      new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide })
+    );
+    referencePlane.position.set(0, 1.6, 0); // Place slightly above the body
+    referencePlane.rotation.x = Math.PI / 2;
+    this.scene.add(referencePlane);
+
+    // Left wheel with motor
     this.leftWheel = new THREE.Mesh(
       new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
       new THREE.MeshBasicMaterial({ color: 0x0000ff })
     );
-    this.leftWheel.position.set(-0.75, 0.25, 0.5);
+    this.leftWheel.position.set(-0.75, -0.4, 0.5);
     this.leftWheel.rotation.x = Math.PI / 2;
+    this.leftWheel.rotation.z = Math.PI / 2;
     this.scene.add(this.leftWheel);
 
-    // Right wheel
+    // Right wheel with motor
     this.rightWheel = new THREE.Mesh(
       new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
-      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+      new THREE.MeshBasicMaterial({ color: 0x0000ff })
     );
-    this.rightWheel.position.set(0.75, 0.25, 0.5);
+    this.rightWheel.position.set(0.75, -0.4, 0.5);
     this.rightWheel.rotation.x = Math.PI / 2;
+    this.rightWheel.rotation.z = Math.PI / 2;
     this.scene.add(this.rightWheel);
 
-    // Left leg setup
+    // Left leg setup with articulation points
     this.leftLeg = new THREE.Group();
-    const leftThigh = new THREE.Mesh(
+
+    const leftThighSecondary = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.8, 0.1),
+      new THREE.MeshBasicMaterial({ color: 0x0000ff })
+    );
+    leftThighSecondary.position.set(0, 0.5, 0);
+    leftThighSecondary.rotation.x = 1.2;
+    this.leftLeg.add(leftThighSecondary);
+
+    const leftThighMain = new THREE.Mesh(
       new THREE.BoxGeometry(0.2, 0.8, 0.2),
       new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    leftThigh.position.set(0, 0.4, 0);
-    this.leftLeg.add(leftThigh);
+    leftThighMain.position.set(0, 0.7, -0.3);
+    leftThighMain.rotation.x = Math.PI / 4;
+    this.leftLeg.add(leftThighMain);
 
     const leftShin = new THREE.Mesh(
       new THREE.BoxGeometry(0.2, 0.8, 0.2),
       new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    leftShin.position.set(0, -0.4, 0);
+    leftShin.position.set(0, -0, 0);
+    leftShin.rotation.x = -(Math.PI / 4);
     this.leftLeg.add(leftShin);
 
     this.leftLeg.position.set(-1, 0, 0);
     this.scene.add(this.leftLeg);
 
-    // Right leg setup
+    // Servo at the top leg/body connection for left leg
+    const leftServo = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.1, 0.1, 0.2, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffff00 })
+    );
+    leftServo.position.set(-1, 1, 0);
+    this.scene.add(leftServo);
+
+    // Right leg setup with articulation points
     this.rightLeg = new THREE.Group();
-    const rightThigh = new THREE.Mesh(
+    const rightThighSecondary = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.8, 0.1),
+      new THREE.MeshBasicMaterial({ color: 0x0000ff })
+    );
+    rightThighSecondary.position.set(0, 0.5, 0);
+    rightThighSecondary.rotation.x = 1.2;
+    this.rightLeg.add(rightThighSecondary);
+
+    const rightThighMain = new THREE.Mesh(
       new THREE.BoxGeometry(0.2, 0.8, 0.2),
       new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    rightThigh.position.set(0, 0.4, 0);
-    this.rightLeg.add(rightThigh);
+    rightThighMain.position.set(0, 0.7, -0.3);
+    rightThighMain.rotation.x = Math.PI / 4;
+    this.rightLeg.add(rightThighMain);
+
+    this.rightLeg.position.set(1, 0, 0);
+    this.scene.add(this.rightLeg);
 
     const rightShin = new THREE.Mesh(
       new THREE.BoxGeometry(0.2, 0.8, 0.2),
       new THREE.MeshBasicMaterial({ color: 0x00ff00 })
     );
-    rightShin.position.set(0, -0.4, 0);
+    rightShin.position.set(0, -0, 0);
+    rightShin.rotation.x = -(Math.PI / 4);
     this.rightLeg.add(rightShin);
 
-    this.rightLeg.position.set(1, 0, 0);
-    this.scene.add(this.rightLeg);
+    // Servo at the top leg/body connection for right leg
+    const rightServo = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.1, 0.1, 0.2, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffff00 })
+    );
+    rightServo.position.set(1, 1, 0);
+    this.scene.add(rightServo);
 
     // Set camera position
     this.camera.position.z = 5;
@@ -191,6 +282,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     controls.maxPolarAngle = Math.PI / 2; // Restrict to positive Z axis rotation
     this.animate();
   }
+
 
   // Animation loop
   animate() {
