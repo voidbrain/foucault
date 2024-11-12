@@ -33,9 +33,35 @@ const topics = {
 };
 
 // MQTT client setup
-const mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL || 'mqtt://mqtt-broker:1883');
+const mqttClient = mqtt.connect('mqtt://mqtt-broker:1883');
 mqttClient.on('connect', () => console.log('Connected to MQTT broker'));
-mqttClient.on('message', (topic, message) => { /* handle messages here if necessary */ });
+mqttClient.on('message', message => { /* handle messages here if necessary */
+  let increment;
+  const {topic, direction, source } = message;
+  switch(topic) {
+    case 'console/move': {
+      switch(direction) {
+        case 'forward': 
+          pidControl(currentAngle + increment, previousError, integral, true);
+          pidControl(currentAngle + increment, previousError, integral, false);
+        break;
+        case 'backward':
+          pidControl(currentAngle - increment, previousError, integral, true);
+          pidControl(currentAngle - increment, previousError, integral, false);
+        break;
+        case 'left':
+          pidControl(currentAngle + increment, previousError, integral, true);
+          pidControl(currentAngle - increment, previousError, integral, false);
+        break;
+        case 'right':
+          pidControl(currentAngle + increment, previousError, integral, true);
+          pidControl(currentAngle - increment, previousError, integral, false);
+        break;
+      }
+      
+    }
+  }
+ });
 
 // Function to send an MQTT message
 function sendMQTTMessage(topic, object) {
@@ -92,7 +118,6 @@ async function getTiltAngles() {
   try {
     const accelData = await readAccelerometer();
     const { accelX, accelY, accelZ } = accelData;
-    console.log("[PID] accelData", accelData);
     sendMQTTMessage(topics.accelData, { accelData, source:'pid'});
 
     const xAngle = Math.atan2(accelY, accelZ) * (180 / Math.PI);
@@ -139,7 +164,7 @@ function updateMotors(leftOutput, rightOutput) {
   sendMQTTMessage(topics.motorLeft, { source: 'pid', value: clampedLeftOutput });
   sendMQTTMessage(topics.motorRight, { source: 'pid', value: clampedRightOutput });
 
-  console.log(`[PID] Left Motor PWM: ${clampedLeftOutput}, Right Motor PWM: ${clampedRightOutput}`);
+  // console.log(`[PID] Left Motor PWM: ${clampedLeftOutput}, Right Motor PWM: ${clampedRightOutput}`);
 }
 
 // Function to adjust servos based on height difference calculation
@@ -155,8 +180,8 @@ function adjustServos(xAngle) {
   sendMQTTMessage(topics.servoLeft, { source:'pid', value: clampedLeftPulseWidth}); // Corrected message format
   sendMQTTMessage(topics.servoRight, { source:'pid', value: clampedRightPulseWidth}); // Corrected message format
 
-  console.log(`[pid] Left Servo Pulse Width: ${clampedLeftPulseWidth}µs`);
-  console.log(`[pid] Right Servo Pulse Width: ${clampedRightPulseWidth}µs`);
+  // console.log(`[pid] Left Servo Pulse Width: ${clampedLeftPulseWidth}µs`);
+  // console.log(`[pid] Right Servo Pulse Width: ${clampedRightPulseWidth}µs`);
 }
 
 // Run control loop at regular intervals (e.g., 200ms)

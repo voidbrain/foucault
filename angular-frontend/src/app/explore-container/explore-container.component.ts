@@ -74,6 +74,8 @@ export class ExploreContainerComponent implements AfterViewInit {
     motorRight: 'controller/motorPWM/right',
     servoLeft: 'controller/servoPulseWidth/left',
     servoRight: 'controller/servoPulseWidth/right',
+
+    move: 'console/move'
   };
 
   scene!: THREE.Scene;
@@ -116,18 +118,22 @@ export class ExploreContainerComponent implements AfterViewInit {
     document.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       let command;
-  
+      
       switch (key) {
           case 'w':
+          case "ArrowUp":
               command = "forward";
               break;
           case 'a':
+          case "ArrowLeft":
               command = "left";
               break;
           case 's':
+          case "ArrowDown":
               command = "backward";
               break;
           case 'd':
+          case "ArrowRight":
               command = "right";
               break;
           default:
@@ -426,11 +432,11 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   handleAccelData(data: { accelX: any; accelY: any; accelZ: any }) {
     this.updateConsoleAccelData(data);
-    this.updateTHREERobotTilt(data);
   }
 
   handleTiltAngles(data: { xAngle: number; yAngle: number }) {
     this.updateConsoleTiltAngles(data);
+    this.updateTHREERobotTilt(data);
   }
 
   handleConsoleMessage(topic: string, message: string, source: string) {
@@ -506,10 +512,9 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.rightLeg.position.y = data.rightHeight;
   }
 
-  updateTHREERobotTilt(data: { accelX: number; accelY: number; accelZ: number }) {
-    const { accelX, accelY } = data;
-    this.referencePlane.rotation.x = THREE.MathUtils.degToRad(accelX);
-    this.referencePlane.rotation.y = THREE.MathUtils.degToRad(accelY);
+  updateTHREERobotTilt(data: { xAngle: number; yAngle: number }) {
+    this.referencePlane.rotation.x = THREE.MathUtils.degToRad(data.xAngle);
+    this.referencePlane.rotation.y = THREE.MathUtils.degToRad(data.yAngle);
   }
 
   toggleEnable(event: any) {
@@ -523,7 +528,7 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   sendControlCommand(command: string) {
     if (this.socket !== null) {
-      this.socket.emit('move', { direction: command, from: 'Angular FE' });
+      this.socket.emit('message', { topic: 'console/move', direction: command, souce: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }
