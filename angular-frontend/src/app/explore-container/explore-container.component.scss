@@ -4,13 +4,6 @@
   margin-top: 10px;
 }
 
-.container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
 #threejs-container {
-  flex-grow: 1; /* Let other content fill the remaining space */
-  height: 100%;
+  margin-bottom: 20px;
 }

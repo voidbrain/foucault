@@ -1,36 +1,10 @@
 import { io, Socket } from 'socket.io-client';
-import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
-import {
-  Component,
-  AfterViewInit,
-  ChangeDetectorRef,
-  ElementRef,
-  ViewChild,
-} from '@angular/core';
+import { Component, AfterViewInit, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import {
-  IonContent,
-  IonHeader,
-  IonTitle,
-  IonToolbar,
-  IonRow,
-  IonButton,
-  IonGrid,
-  IonCol,
-  IonCard,
-  IonText,
-  IonCardContent,
-  IonCardTitle,
-  IonCardHeader,
-  IonLabel,
-  IonRange,
-  IonToggle,
-  IonCardSubtitle,
-} from '@ionic/angular/standalone';
-import { SocketService } from '../services/send-mqtt/send-mqtt.service'; // Make sure this service is set up to publish MQTT messages
-
+import { IonContent, IonHeader, IonTitle, IonToolbar, IonRow, IonButton, IonGrid, IonCol, IonCard, IonText, IonCardContent, IonCardTitle, IonCardHeader, IonLabel, IonRange, IonToggle, IonCardSubtitle } from '@ionic/angular/standalone';
+import { SocketService } from '../services/send-mqtt/send-mqtt.service';
 import * as THREE from 'three';
 
 @Component({
@@ -39,25 +13,8 @@ import * as THREE from 'three';
   templateUrl: './explore-container.component.html',
   styleUrls: ['./explore-container.component.scss'],
   imports: [
-    IonContent,
-    IonHeader,
-    IonTitle,
-    IonToolbar,
-    IonRow,
-    IonButton,
-    IonGrid,
-    IonCol,
-    IonCard,
-    IonText,
-    IonCardContent,
-    IonCardTitle,
-    IonCardHeader,
-    IonLabel,
-    IonRange,
-    IonToggle,
-    IonCardSubtitle,
-    CommonModule, // Provides *ngFor, *ngIf, etc.
-    FormsModule, // Provides form-related directives like ngModel
+    IonContent, IonHeader, IonTitle, IonToolbar, IonRow, IonButton, IonGrid, IonCol, IonCard, IonText, IonCardContent,
+    IonCardTitle, IonCardHeader, IonLabel, IonRange, IonToggle, IonCardSubtitle, CommonModule, FormsModule
   ],
 })
 export class ExploreContainerComponent implements AfterViewInit {
@@ -77,41 +34,167 @@ export class ExploreContainerComponent implements AfterViewInit {
     servoRight: 'controller/servoPulseWidth/right'
   };
 
-  // Three.js objects
+  topics = {
+    console: 'console/log',
+    accelData: 'controller/accelData',
+    tiltAngles: 'controller/tiltAngles',
+    motorLeft: 'controller/motorPWM/left',
+    motorRight: 'controller/motorPWM/right',
+    servoLeft: 'controller/servoPulseWidth/left',
+    servoRight: 'controller/servoPulseWidth/right'
+  };
+
   scene!: THREE.Scene;
   camera!: THREE.PerspectiveCamera;
   renderer!: THREE.WebGLRenderer;
   robotBody!: THREE.Mesh;
+  referencePlane!: THREE.Mesh;
   leftWheel!: THREE.Mesh;
   rightWheel!: THREE.Mesh;
   leftLeg!: THREE.Group;
   rightLeg!: THREE.Group;
-  balanceSensor!: THREE.Mesh;
+  isDynamic: boolean = true;
 
-  scenes: THREE.Scene[] = [];
-  cameras: THREE.PerspectiveCamera[] = [];
-  renderers: THREE.WebGLRenderer[] = [];
+  HEIGHT_LOW = 1;
+  HEIGHT_MID = 2;
+  HEIGHT_HIGH = 3;
+
+  BODY_HEIGHT_LOW = 0.4;
+  BODY_HEIGHT_MID = 1;
+  BODY_HEIGHT_HIGH = 1.2;
+
+  LEG_HEIGHT_LOW = 0;
+  LEG_HEIGHT_MID = 1;
+  LEG_HEIGHT_HIGH = 2;
+
+  heights = ["HEIGHT_LOW", "HEIGHT_MID", "HEIGHT_HIGH"];
 
   @ViewChild('threejsContainer', { static: true }) threejsContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild('cartesianContainer', { static: true }) cartesianContainer!: ElementRef<HTMLDivElement>;
 
-  constructor(
-    private socketService: SocketService,
-    private cdr: ChangeDetectorRef
-  ) {}
+  constructor(private socketService: SocketService, private cdr: ChangeDetectorRef) {}
 
   ngAfterViewInit(): void {
     this.setupThreeJS();
     this.setupCartesianPlane();
     this.animate();
     this.setupSocket();
+    this.adjustHeight("HEIGHT_MID");
   }
 
-  startObjectDetection() {
-    if (this.socket !== null) {
-      this.socket.emit('startObjectDetection');
-    } else {
-      console.warn('Socket is null');
+  adjustHeightEvent(event: CustomEvent) {
+    this.adjustHeight(this.heights[event.detail.value - 1]);
+  }
+
+  adjustHeight(height: string) {
+    let targetHeight = this.HEIGHT_MID;
+    let offsetHeight;
+    switch (height) {
+      case 'HEIGHT_LOW':
+        targetHeight = this.HEIGHT_LOW;
+        offsetHeight = -0.8;
+        this.updateRobotBody(this.BODY_HEIGHT_LOW, offsetHeight);
+        break;
+      case 'HEIGHT_MID':
+        targetHeight = this.HEIGHT_MID;
+        offsetHeight = 0;
+        this.updateRobotBody(this.BODY_HEIGHT_MID, offsetHeight);
+        break;
+      case 'HEIGHT_HIGH':
+        targetHeight = this.HEIGHT_HIGH;
+        offsetHeight = +0.2;
+        this.updateRobotBody(this.BODY_HEIGHT_HIGH, offsetHeight);
+        break;
+    }
+
+    this.updateLegs(targetHeight);
+  }
+
+  updateLegs(height: number) {
+    this.adjustLegPosition(-1, height); // Left leg
+    this.adjustLegPosition(1, height);  // Right leg
+    this.updateWheels(height);
+  }
+
+  updateRobotBody(targetHeight: number, offsetHeight: number) {
+    this.robotBody.position.y = this.BODY_HEIGHT_MID + offsetHeight;
+    this.referencePlane.position.y = this.BODY_HEIGHT_MID + offsetHeight + 0.6;
+  }
+
+  updateWheels(height: number) {
+    // Update the wheel positions based on the new height
+    // Assuming the wheels are located at y = 1 for the mid height (for example)
+    const wheelOffset = 0.5;  // Adjust based on your design
+
+    // this.updateWheelPosition(-0.75, height - wheelOffset, -0.4);  // Left wheel
+    // this.updateWheelPosition(0.75, height - wheelOffset, -0.4);   // Right wheel
+}
+
+updateWheelPosition(x: number, y: number, z: number) {
+  // Update wheel position
+  const wheel = this.scene.children.find(child => child instanceof THREE.Mesh && child.material.color.getHex() === 0x0000ff);
+  if (wheel) {
+      wheel.position.set(x, y, z);
+  }
+}
+
+  adjustLegPosition(x: number, height: number) {
+    const leg = this.scene.children.find(child => child instanceof THREE.Group && child.name === `leg-${x}`) as THREE.Group;
+    console.log(leg)
+    if (leg) {
+      const thighUp = leg.children[0];
+      const thighDown = leg.children[1];
+      const shin = leg.children[2];
+
+      const offset = height - 1;
+
+      switch(height){
+        case 1: // low
+          thighUp.rotation.x = Math.PI / 2;
+          thighUp.position.x = 0;
+          thighUp.position.y = 0.5;
+          thighUp.position.z = -0.3;
+
+          shin.rotation.x = -(Math.PI / 4);
+          shin.position.x = 0;
+          shin.position.y = 0.2;
+          shin.position.z = -0.5;
+
+          thighDown.position.set(0, 0.7, -0.4);
+          thighDown.rotation.x = Math.PI / 2;
+        break;
+        case 2: // mid
+          thighUp.rotation.x = Math.PI / 4;
+          thighUp.position.x = 0;
+          thighUp.position.y = 1;
+          thighUp.position.z = -0.2;
+
+          shin.rotation.x =  -(Math.PI / 6)
+          shin.position.x = 0;
+          shin.position.y = 0.5;
+          shin.position.z = -0.3;
+
+          thighDown.position.set(0, 1.2, -0.4);
+          thighDown.rotation.x = Math.PI / 5;
+        break;
+        case 3: // high
+          thighUp.rotation.x = Math.PI;
+          thighUp.position.x = 0;
+          thighUp.position.y = 1.1;
+          thighUp.position.z = 0;
+
+          shin.rotation.x = Math.PI ;
+          shin.position.x = 0;
+          shin.position.y = 0.3;
+          shin.position.z = 0;
+
+          thighDown.position.set(0, 1.2, -0.2);
+          thighDown.rotation.x = Math.PI;
+        break;
+        default:
+        break;
+      }
+
+      this.updateLegServos(leg, height);
     }
   }
 
@@ -153,122 +236,111 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.renderers.push(cartesianRenderer);
   }
 
-  // Set up Three.js scene
-  setupThreeJS() {    
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-    );
-    this.renderer = new THREE.WebGLRenderer();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  updateLegServos(leg: THREE.Group, height: number) {
+    const servo = leg.children.find(child => child instanceof THREE.Mesh && child.geometry.type === 'CylinderGeometry');
+    if (servo) {
+      let angle = 0;
+      if (height === this.HEIGHT_HIGH) {
+        // angle = Math.PI / 2;
+        servo.position.y = 1.4;
+      }
 
-    // Append renderer to the div with id 'threejs-container'
+      if (height === this.HEIGHT_MID) {
+        // angle = -Math.PI / 2;
+        servo.position.y = 1.2;
+      }
+
+      if (height === this.HEIGHT_LOW) {
+        // angle = -Math.PI / 2;
+        servo.position.y = 0.5;
+      }
+    }
+  }
+
+  toggleDynamic(event: any) {
+    this.isDynamic = event.detail.checked;
+  }
+
+  setupThreeJS() {
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.renderer = new THREE.WebGLRenderer();
+
     const container = this.threejsContainer?.nativeElement;
     if (container) {
-        container.appendChild(this.renderer.domElement);
+      const width = 800;
+      const height = 500;
+      this.renderer.setSize(width, height);
+      container.appendChild(this.renderer.domElement);
     }
 
-    // Robot main body
-    this.robotBody = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 1, 1),
-        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    this.robotBody.position.y = 1.5;
+    this.robotBody = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+    this.robotBody.position.y = 1;
     this.scene.add(this.robotBody);
 
-    // Balance sensor
-    const sensorGeometry = new THREE.SphereGeometry(0.1, 32, 32);
-    const sensorMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-    this.balanceSensor = new THREE.Mesh(sensorGeometry, sensorMaterial);
-    this.balanceSensor.position.set(0, 2, 0); // Positioned at the top center of the main body
-    this.robotBody.add(this.balanceSensor);
+    this.referencePlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 1), new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide }));
+    this.referencePlane.position.set(0, 1.6, 0);
+    this.referencePlane.rotation.x = Math.PI / 2;
+    this.scene.add( this.referencePlane);
 
-    // Wheels with motors
-    this.leftWheel = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
-        new THREE.MeshBasicMaterial({ color: 0x0000ff })
-    );
-    this.leftWheel.position.set(-0.8, 0.5, 0);
-    this.leftWheel.rotation.z = Math.PI / 2;
-    this.robotBody.add(this.leftWheel);
+    this.addWheel(-1.2, -0.4, -0.2);
+    this.addWheel(1.2, -0.4, -0.2);
 
-    this.rightWheel = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
-        new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    );
-    this.rightWheel.position.set(0.8, 0.5, 0);
-    this.rightWheel.rotation.z = Math.PI / 2;
-    this.robotBody.add(this.rightWheel);
+    this.addLeg(-1,-1.2, 0, 0);
+    this.addLeg(1, 1.2, 0, 0);
 
-    // Left leg with two-piece thigh
-    this.leftLeg = new THREE.Group();
-    const leftUpperThigh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.5, 0.2),
-        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    leftUpperThigh.position.set(0, 0.25, 0);
-    this.leftLeg.add(leftUpperThigh);
+    this.camera.position.set(-2, 2, 3);
 
-    const leftLowerThigh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.5, 0.2),
-        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    leftLowerThigh.position.set(0, -0.25, 0);
-    leftUpperThigh.add(leftLowerThigh);
-
-    // Left ankle with servo
-    const leftAnkleServo = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.2, 0.2),
-        new THREE.MeshBasicMaterial({ color: 0xffa500 })
-    );
-    leftAnkleServo.position.set(0, -0.25, 0);
-    leftLowerThigh.add(leftAnkleServo);
-
-    this.leftLeg.position.set(-1, 0.5, 0);
-    this.scene.add(this.leftLeg);
-
-    // Right leg with two-piece thigh
-    this.rightLeg = new THREE.Group();
-    const rightUpperThigh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.5, 0.2),
-        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    rightUpperThigh.position.set(0, 0.25, 0);
-    this.rightLeg.add(rightUpperThigh);
-
-    const rightLowerThigh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.5, 0.2),
-        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    rightLowerThigh.position.set(0, -0.25, 0);
-    rightUpperThigh.add(rightLowerThigh);
-
-    // Right ankle with servo
-    const rightAnkleServo = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.2, 0.2),
-        new THREE.MeshBasicMaterial({ color: 0xffa500 })
-    );
-    rightAnkleServo.position.set(0, -0.25, 0);
-    rightLowerThigh.add(rightAnkleServo);
-
-    this.rightLeg.position.set(1, 0.5, 0);
-    this.scene.add(this.rightLeg);
-
-    // Set camera position and add OrbitControls
-    this.camera.position.z = 5;
     const controls = new OrbitControls(this.camera, this.renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.25;
     controls.screenSpacePanning = false;
-    controls.maxPolarAngle = Math.PI / 2; // Restrict to positive Z axis rotation
+    controls.maxPolarAngle = Math.PI / 2;
 
-    // Add scene, camera, and renderer to the arrays for the animate loop
-    this.scenes.push(this.scene);
-    this.cameras.push(this.camera);
-    this.renderers.push(this.renderer);
+    this.addGrid();
+    this.animate();
+  }
+
+  addWheel(x: number, y: number, z: number) {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32), new THREE.MeshBasicMaterial({ color: 0x0000ff }));
+    wheel.position.set(x, y, z);
+    wheel.rotation.x = Math.PI / 2;
+    wheel.rotation.z = Math.PI / 2;
+    this.scene.add(wheel);
+  }
+
+  addLeg(name:number, x: number, y: number, z: number) {
+    const leg = new THREE.Group();
+
+    const thighUp = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+    thighUp.position.set(0, 0.7, -0.3);
+    thighUp.rotation.x = Math.PI / 4;
+    leg.add(thighUp);
+
+    const thighDown = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1), new THREE.MeshBasicMaterial({ color: 0xFFD700 }));
+    thighDown.position.set(0, 1.2, -0.4);
+    thighDown.rotation.x = Math.PI / 5;
+    leg.add(thighDown);
+
+    const shin = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+    shin.position.set(0, 0, 0);
+    shin.rotation.x = -(Math.PI / 4);
+    leg.add(shin);
+
+    const servo = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.2, 16), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
+    servo.position.set(0, 1, 0);
+    servo.rotation.z = Math.PI / 2;
+    leg.add(servo);
+
+    leg.position.set(x, y, z);
+    leg.name = `leg-${name}`; // Assign unique name
+    this.scene.add(leg);
+  }
+
+  addGrid() {
+    const gridHelper = new THREE.GridHelper(10, 10);
+    gridHelper.position.y = -1;
+    this.scene.add(gridHelper);
   }
 
   animate() {
@@ -277,6 +349,13 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
 
+  startObjectDetection() {
+    if (this.socket !== null) {
+      this.socket.emit('startObjectDetection');
+    } else {
+      console.warn('Socket is null');
+    }
+  }
   setupSocket() {
     if (this.socket === null) {
       this.socket = io('http://foucault:8080'); // Make sure this URL is correct
@@ -388,8 +467,15 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateHeight(event: any) {
-    const value = event.detail.value;
+    const value = +event.detail.value;
+    const levels = [
+      "HEIGHT_LOW",
+      "HEIGHT_MID",
+      "HEIGHT_HIGH"
+    ]
     this.heightLevel = value;
+    const height = levels[value-1];
+    this.adjustHeight(height);
     console.log('Updated height:', value); // You can use the value as needed
   }
 
