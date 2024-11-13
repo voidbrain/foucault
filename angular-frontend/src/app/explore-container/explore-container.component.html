@@ -19,30 +19,45 @@
       <ion-col size="6">
         <ion-card>
           <ion-card-header>
-            <ion-card-title>Height Level</ion-card-title>
+            <ion-card-title>Controls</ion-card-title>
           </ion-card-header>
           <ion-card-content>
             <ion-grid>
               <ion-row>
                 <ion-col size="6">
-                  <ion-range
-                    [(ngModel)]="heightLevel"
-                    min="1"
-                    max="3"
-                    step="1"
-                    snaps="true"
-                    color="primary"
-                    (ionChange)="adjustHeightEventFromSlider($event)"
-                  >
-                    <ion-label slot="start">1</ion-label>
-                    <ion-label slot="end">3</ion-label> </ion-range
-                  >{{ heights[heightLevel-1] }}
+                  <div>
+                    <ion-range
+                      [value]="heightLevel"
+                      min="1"
+                      max="3"
+                      step="1"
+                      snaps="true"
+                      color="primary"
+                      (ionChange)="adjustHeightEventFromSlider($event)"
+                    >
+                      <ion-label slot="start">1</ion-label>
+                      <ion-label slot="end">3</ion-label> </ion-range
+                    >{{ heights[heightLevel-1] }}
+                  </div>
+                  <div>
+                    <ion-toggle
+                      [checked]="isSensorAdjustmentEnabled"
+                      (ionChange)="sendEnableSensorCommand($event)"
+                      >Enable Sensor Adjustments</ion-toggle
+                    >
+                  </div>
+                  <div>
+                    <ion-button (click)="sendStopCommand()"
+                      >Stop</ion-button
+                    >
+                  </div>
                 </ion-col>
                 <ion-col size="6">
                   <ion-grid>
                     <ion-row>
                       <ion-col size="12" class="ion-text-center">
                         <ion-button (click)="sendControlCommand('forward')"
+                        [class]="walkForwardActive ? 'pulse-effect' : ''"
                           >W</ion-button
                         >
                       </ion-col>
@@ -50,16 +65,19 @@
                     <ion-row>
                       <ion-col size="4" class="ion-text-center">
                         <ion-button (click)="sendControlCommand('left')"
+                        [class]="walkLeftActive ? 'pulse-effect' : ''"
                           >A</ion-button
                         >
                       </ion-col>
                       <ion-col size="4" class="ion-text-center">
                         <ion-button (click)="sendControlCommand('backward')"
+                        [class]="walkBackwardActive ? 'pulse-effect' : ''"
                           >S</ion-button
                         >
                       </ion-col>
                       <ion-col size="4" class="ion-text-center">
                         <ion-button (click)="sendControlCommand('right')"
+                        [class]="walkRightActive ? 'pulse-effect' : ''"
                           >D</ion-button
                         >
                       </ion-col>
@@ -71,94 +89,95 @@
           </ion-card-content>
         </ion-card>
 
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Status</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-           
-            <ion-text color="primary">{{ status }}</ion-text>
-
-            <ion-button (click)="startCAMERAObjectDetection()"
-              >Obj Detection</ion-button
-            >
-            <ion-toggle
-              [(ngModel)]="isEnabled"
-              (ion-change)="toggleEnable($event)"
-              >Enable Control</ion-toggle
-            >
-          </ion-card-content>
-        </ion-card>
-
-        <ion-card>
+        <ion-card color="medium">
           <ion-card-header>
             <ion-card-title>Raw Data</ion-card-title>
           </ion-card-header>
           <ion-card-content>
+            <ion-grid>
+              <ion-row>
+                <ion-col size="6">
+                  <ion-card>
+                    <div>
+                      <ion-card-title>Accelerometer</ion-card-title>
+                    </div>
+                    <ion-card-content>
+                      <ion-text id="accelData-content">Loading...</ion-text>
+                    </ion-card-content>
+                  </ion-card>
+                  </ion-col>
+                <ion-col size="6">
+                  <ion-card>
+                    <div>
+                      <ion-card-title>Tilt Data</ion-card-title>
+                    </div>
+                    <ion-card-content>
+                      <ion-text id="tiltAngles-content">Loading...</ion-text>
+                    </ion-card-content>
+                  </ion-card>
+                  </ion-col>
+              </ion-row>
+            </ion-grid>
 
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title>Accelerometer Data</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <ion-text id="accelData-content">Loading...</ion-text>
-              </ion-card-content>
-            </ion-card>
+           
 
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title>Tilt Data</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                Tilt Data
-                <ion-text id="tiltAngles-content">Loading...</ion-text>
-              </ion-card-content>
-            </ion-card>
+            
           </ion-card-content>
         </ion-card>
 
 
-        <ion-card>
+        <ion-card color="medium">
           <ion-card-header>
             <ion-card-title>Output for Motors</ion-card-title>
           </ion-card-header>
           <ion-card-content>
 
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title>Motor PWM</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <div id="motor-content">
-                  <span id="left-motor"
-                    >Left Motor PWM: <span id="left-motor-value">_</span></span
-                  ><br />
-                  <span id="right-motor"
-                    >Right Motor PWM: <span id="right-motor-value">_</span></span
-                  >
-                </div>
-              </ion-card-content>
-            </ion-card>
+            <ion-grid>
+              <ion-row>
+                <ion-col size="6">
+                  <ion-card>
+                    <div>
+                      <ion-card-title>Motor PWM</ion-card-title>
+                    </div>
+                    <ion-card-content>
+                      <div id="motor-content">
+                        <span id="left-motor"
+                          >Left Motor PWM: <span id="left-motor-value">_</span></span
+                        ><br />
+                        <span id="right-motor"
+                          >Right Motor PWM: <span id="right-motor-value">_</span></span
+                        >
+                      </div>
+                    </ion-card-content>
+                  </ion-card>
+                  </ion-col>
+                <ion-col size="6">
+                  <ion-card>
+                    <div>
+                      <ion-card-title>Servo Pulse </ion-card-title>
+                    </div>
+                    <ion-card-content>
+                      <div id="servo-content">
+                        <span id="left-servo"
+                          >Left Servo Pulse Width:
+                          <span id="left-servo-value">_</span></span
+                        ><br />
+                        <span id="right-servo"
+                          >Right Servo Pulse Width:
+                          <span id="right-servo-value">_</span></span
+                        >
+                      </div>
+                    </ion-card-content>
+                  </ion-card>
+                  </ion-col>
+              </ion-row>
+            </ion-grid>
 
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title>Servo Pulse Width</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <div id="servo-content">
-                  <span id="left-servo"
-                    >Left Servo Pulse Width:
-                    <span id="left-servo-value">_</span></span
-                  ><br />
-                  <span id="right-servo"
-                    >Right Servo Pulse Width:
-                    <span id="right-servo-value">_</span></span
-                  >
-                </div>
-              </ion-card-content>
-            </ion-card>
+            
           </ion-card-content>
         </ion-card>
+
+       
 
         <ion-card>
           <ion-card-header>

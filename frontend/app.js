@@ -23,18 +23,27 @@ mqttClient.on('connect', () => {
 
 // MQTT topics
 const topics = {
-  console: 'console/log',
-  accelData: 'controller/accelData',
-  tiltAngles: 'controller/tiltAngles',
-  motorLeft: 'controller/motorPWM/left',
-  motorRight: 'controller/motorPWM/right',
-  servoLeft: 'controller/servoPulseWidth/left',
-  servoRight: 'controller/servoPulseWidth/right'
+  input: {
+    console: 'console/log',
+    accelData: 'controller/accelData',
+    tiltAngles: 'controller/tiltAngles',
+    motorLeft: 'controller/motorPWM/left',
+    motorRight: 'controller/motorPWM/right',
+    servoLeft: 'controller/servoPulseWidth/left',
+    servoRight: 'controller/servoPulseWidth/right',
+  },
+  output:{
+
+    walk: 'pid/move',
+    stop: 'pid/stop',
+    setHeight: 'pid/set/height',
+    enableSensorAdjustements: 'pid/sensor/enable',
+  }
 };
 
 // Subscribe to all MQTT topics
-Object.keys(topics).forEach(topic => {
-  mqttClient.subscribe(topics[topic], (err) => {
+Object.keys(topics.input).forEach(topic => {
+  mqttClient.subscribe(topics.input[topic], (err) => {
     if (err) {
       console.error(`Error subscribing to topic ${topic}:`, err);
     }
@@ -45,7 +54,7 @@ Object.keys(topics).forEach(topic => {
 io.on('connection', (socket) => {
   console.log('Client connected');
 
-  socket.on('mqtt-publish', (data) => {
+  socket.on('message', (data) => {
     const { topic, message } = data;
 
     // Publish the message to the specified MQTT topic

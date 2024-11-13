@@ -1,9 +1,9 @@
-const i2c = require('i2c');
-const mqtt = require('mqtt');
+const i2c = require("i2c");
+const mqtt = require("mqtt");
 
 // MPU6050 and I2C setup
 const address = 0x68; // MPU6050 default I2C address
-const wire = new i2c(address, { device: '/dev/i2c-1' });
+const wire = new i2c(address, { device: "/dev/i2c-1" });
 
 // PID constants
 const Kp = 1.2; // Proportional gain
@@ -16,102 +16,164 @@ let previousErrorRight = 0;
 let integralLeft = 0;
 let integralRight = 0;
 let setpoint = 0; // Desired balance angle (0 for upright)
+let increment = 1; // Default increment for movement adjustments
 
 // MPU6050 Registers
-const PWR_MGMT_1 = 0x6B;
-const ACCEL_XOUT_H = 0x3B; // Start of accelerometer data
+const PWR_MGMT_1 = 0x6b;
+const ACCEL_XOUT_H = 0x3b;
+
+// Flag for sensor adjustments
+let sensorAdjustmentsEnabled = true;
 
 // MQTT topics
 const topics = {
-  console: 'console/log',
-  accelData: 'controller/accelData',
-  tiltAngles: 'controller/tiltAngles',
-  motorLeft: 'controller/motorPWM/left',
-  motorRight: 'controller/motorPWM/right',
-  servoLeft: 'controller/servoPulseWidth/left',
-  servoRight: 'controller/servoPulseWidth/right'
+  output: {
+    console: "console/log",
+    accelData: "controller/accelData",
+    tiltAngles: "controller/tiltAngles",
+    motorLeft: "controller/motorPWM/left",
+    motorRight: "controller/motorPWM/right",
+    servoLeft: "controller/servoPulseWidth/left",
+    servoRight: "controller/servoPulseWidth/right",
+  },
+  input: {
+    walkForward: "pid/move/forward",
+    walkBackward: "pid/move/backward",
+    walkLeft: "pid/move/left",
+    walkRight: "pid/move/right",
+    stop: "pid/stop",
+    setHeightLow: "pid/set/height/low",
+    setHeightMid: "pid/set/height/mid",
+    setHeightHigh: "pid/set/height/high",
+    enableSensorAdjustementsTrue: "pid/sensor/enable/true",
+    enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+  },
 };
 
 // MQTT client setup
-const mqttClient = mqtt.connect('mqtt://mqtt-broker:1883');
-mqttClient.on('connect', () => console.log('Connected to MQTT broker'));
-mqttClient.on('message', message => { /* handle messages here if necessary */
-  let increment;
-  console.log(message);
-  const {topic, direction, source } = message;
-  console.log(topic, direction, source);
-  switch(topic) {
-    case 'console/move': {
-      switch(direction) {
-        case 'forward': 
-          pidControl(currentAngle + increment, previousError, integral, true);
-          pidControl(currentAngle + increment, previousError, integral, false);
+const mqttClient = mqtt.connect("mqtt://mqtt-broker:1883");
+mqttClient.on("connect", () => {
+  console.log("Connected to MQTT broker");
+  mqttClient.subscribe(Object.values(topics.input), (err) => {
+    if (err) console.error("Subscription error:", err);
+  });
+});
+
+// Message handler for subscribed topics
+mqttClient.on("message", (topic) => {
+    switch (topic) {
+      case topics.input.walkForward:
+        handleWalk("forward");
         break;
-        case 'backward':
-          pidControl(currentAngle - increment, previousError, integral, true);
-          pidControl(currentAngle - increment, previousError, integral, false);
+      case topics.input.walkBackward:
+        handleWalk("backward");
         break;
-        case 'left':
-          pidControl(currentAngle + increment, previousError, integral, true);
-          pidControl(currentAngle - increment, previousError, integral, false);
+      case topics.input.walkLeft:
+        handleWalk("left");
         break;
-        case 'right':
-          pidControl(currentAngle + increment, previousError, integral, true);
-          pidControl(currentAngle - increment, previousError, integral, false);
+      case topics.input.walkRight:
+        handleWalk("right");
         break;
-      }
-      
+      case topics.input.stop:
+        handleStop();
+        break;
+      case topics.input.setHeightLow:
+        break;
+      case topics.input.setHeightMid:
+        break;
+      case topics.input.setHeightHigh:
+        break;
+      case topics.input.enableSensorAdjustementsTrue:
+        sensorAdjustmentsEnabled = true;
+        break;
+      case topics.input.enableSensorAdjustementsFalse:
+        sensorAdjustmentsEnabled = false;
+        break;
     }
+});
+
+function handleStop() {
+  pidControl(setpoint, previousErrorLeft, integralLeft, true);
+  pidControl(setpoint, previousErrorRight, integralRight, false);
+}
+
+// Function to handle walking directions
+function handleWalk(direction) {
+  switch (direction) {
+    case "forward":
+      pidControl(setpoint + increment, previousErrorLeft, integralLeft, true);
+      pidControl(
+        setpoint + increment,
+        previousErrorRight,
+        integralRight,
+        false
+      );
+      break;
+    case "backward":
+      pidControl(setpoint - increment, previousErrorLeft, integralLeft, true);
+      pidControl(
+        setpoint - increment,
+        previousErrorRight,
+        integralRight,
+        false
+      );
+      break;
+    case "left":
+      pidControl(setpoint + increment, previousErrorLeft, integralLeft, true);
+      pidControl(
+        setpoint - increment,
+        previousErrorRight,
+        integralRight,
+        false
+      );
+      break;
+    case "right":
+      pidControl(setpoint - increment, previousErrorLeft, integralLeft, true);
+      pidControl(
+        setpoint + increment,
+        previousErrorRight,
+        integralRight,
+        false
+      );
+      break;
   }
- });
+}
 
 // Function to send an MQTT message
 function sendMQTTMessage(topic, object) {
   mqttClient.publish(topic, JSON.stringify(object), (err) => {
-    if (err) {
-      console.error('Error sending MQTT object:', err);
-    }
+    if (err) console.error("Error sending MQTT object:", err);
   });
 }
 
 // Wake up the MPU6050 by writing 0 to the PWR_MGMT_1 register
 function wakeUpMPU6050() {
   wire.writeBytes(PWR_MGMT_1, [0x00], (err) => {
-    if (err) {
-      sendMQTTMessage(topics.console, { source:"pid", message: "Error waking up MPU6050", error: err });
-    } else {
-      sendMQTTMessage(topics.console, { source:"pid", message: "MPU6050 awake" });
-    }
+    sendMQTTMessage(topics.output.console, {
+      source: "pid",
+      message: err ? "Error waking up MPU6050" : "MPU6050 awake",
+      error: err,
+    });
   });
 }
 
 // Function to read accelerometer data with retry logic
 function readAccelerometer() {
   return new Promise((resolve, reject) => {
-    let retries = 3;
-    function attemptRead() {
-      wire.readBytes(ACCEL_XOUT_H, 6, (err, buffer) => {
-        if (err) {
-          if (retries > 0) {
-            retries--;
-            attemptRead();
-          } else {
-            reject("Failed to read accelerometer data");
-          }
-        } else {
-          let accelX = (buffer[0] << 8) | buffer[1];
-          let accelY = (buffer[2] << 8) | buffer[3];
-          let accelZ = (buffer[4] << 8) | buffer[5];
+    wire.readBytes(ACCEL_XOUT_H, 6, (err, buffer) => {
+      if (err) reject("Failed to read accelerometer data");
+      else {
+        let accelX = (buffer[0] << 8) | buffer[1];
+        let accelY = (buffer[2] << 8) | buffer[3];
+        let accelZ = (buffer[4] << 8) | buffer[5];
 
-          accelX = accelX > 32767 ? accelX - 65536 : accelX;
-          accelY = accelY > 32767 ? accelY - 65536 : accelY;
-          accelZ = accelZ > 32767 ? accelZ - 65536 : accelZ;
+        accelX = accelX > 32767 ? accelX - 65536 : accelX;
+        accelY = accelY > 32767 ? accelY - 65536 : accelY;
+        accelZ = accelZ > 32767 ? accelZ - 65536 : accelZ;
 
-          resolve({ accelX, accelY, accelZ });
-        }
-      });
-    }
-    attemptRead();
+        resolve({ accelX, accelY, accelZ });
+      }
+    });
   });
 }
 
@@ -119,27 +181,19 @@ function readAccelerometer() {
 async function getTiltAngles() {
   try {
     const accelData = await readAccelerometer();
-    const { accelX, accelY, accelZ } = accelData;
-    sendMQTTMessage(topics.accelData, { accelData, source:'pid'});
-
-    const xAngle = Math.atan2(accelY, accelZ) * (180 / Math.PI);
-    const yAngle = Math.atan2(accelX, accelZ) * (180 / Math.PI);
-
+    const xAngle =
+      Math.atan2(accelData.accelY, accelData.accelZ) * (180 / Math.PI);
+    const yAngle =
+      Math.atan2(accelData.accelX, accelData.accelZ) * (180 / Math.PI);
+    sendMQTTMessage(topics.output.accelData, { accelData, source: "pid" });
     return { xAngle, yAngle };
   } catch (error) {
-    sendMQTTMessage(topics.console, { source:"pid", message: `Error getting tilt angles: ${error}` });
+    sendMQTTMessage(topics.output.console, {
+      source: "pid",
+      message: `Error getting tilt angles: ${error}`,
+    });
     return { xAngle: 0, yAngle: 0 };
   }
-}
-
-// Calculate height difference based on tilt angles for independent servos
-function calculateHeightDifference({ xAngle }) {
-  const tiltToHeightFactor = 0.1; // Adjust this factor as necessary
-  const heightDifference = xAngle * tiltToHeightFactor;
-  return {
-    leftHeight: heightDifference,
-    rightHeight: -heightDifference // Invert for the opposite side
-  };
 }
 
 // Adjusted PID controller for each motor based on tilt angle direction
@@ -148,69 +202,86 @@ function pidControl(currentAngle, previousError, integral, isLeftMotor) {
   integral += error;
   const derivative = error - previousError;
   const output = Kp * error + Ki * integral + Kd * derivative;
-
-  // Apply minimum output threshold
   const minOutputThreshold = 5;
   const adjustedOutput = Math.abs(output) < minOutputThreshold ? 0 : output;
-
-  // Reverse direction of output based on tilt direction for each motor
-  const directionAdjustedOutput = isLeftMotor ? adjustedOutput : -adjustedOutput;
-  return { output: directionAdjustedOutput, previousError: error, integral };
+  return {
+    output: isLeftMotor ? adjustedOutput : -adjustedOutput,
+    previousError: error,
+    integral,
+  };
 }
 
 // Function to update motors based on separate outputs for left and right motors
 function updateMotors(leftOutput, rightOutput) {
-  const clampedLeftOutput = Math.max(0, Math.min(255, Math.round(127 + leftOutput))); // Center at 127 for both directions
-  const clampedRightOutput = Math.max(0, Math.min(255, Math.round(127 + rightOutput)));
+  const clampedLeftOutput = Math.max(
+    0,
+    Math.min(255, Math.round(127 + leftOutput))
+  );
+  const clampedRightOutput = Math.max(
+    0,
+    Math.min(255, Math.round(127 + rightOutput))
+  );
 
-  sendMQTTMessage(topics.motorLeft, { source: 'pid', value: clampedLeftOutput });
-  sendMQTTMessage(topics.motorRight, { source: 'pid', value: clampedRightOutput });
-
-  // console.log(`[PID] Left Motor PWM: ${clampedLeftOutput}, Right Motor PWM: ${clampedRightOutput}`);
+  sendMQTTMessage(topics.output.motorLeft, {
+    source: "pid",
+    value: clampedLeftOutput,
+  });
+  sendMQTTMessage(topics.output.motorRight, {
+    source: "pid",
+    value: clampedRightOutput,
+  });
 }
 
-// Function to adjust servos based on height difference calculation
+// Adjust servos based on height difference calculation
 function adjustServos(xAngle) {
-  const { leftHeight, rightHeight } = calculateHeightDifference({ xAngle });
+  const heightDifference = xAngle * 0.1;
+  const leftPulseWidth = Math.max(
+    500,
+    Math.min(2500, Math.round(500 + heightDifference * 2000))
+  );
+  const rightPulseWidth = Math.max(
+    500,
+    Math.min(2500, Math.round(500 + -heightDifference * 2000))
+  );
 
-  const leftPulseWidth = Math.round(500 + (leftHeight * 2000));
-  const rightPulseWidth = Math.round(500 + (rightHeight * 2000));
-
-  const clampedLeftPulseWidth = Math.max(500, Math.min(2500, leftPulseWidth));
-  const clampedRightPulseWidth = Math.max(500, Math.min(2500, rightPulseWidth));
-
-  sendMQTTMessage(topics.servoLeft, { source:'pid', value: clampedLeftPulseWidth}); // Corrected message format
-  sendMQTTMessage(topics.servoRight, { source:'pid', value: clampedRightPulseWidth}); // Corrected message format
-
-  // console.log(`[pid] Left Servo Pulse Width: ${clampedLeftPulseWidth}µs`);
-  // console.log(`[pid] Right Servo Pulse Width: ${clampedRightPulseWidth}µs`);
+  sendMQTTMessage(topics.output.servoLeft, {
+    source: "pid",
+    value: leftPulseWidth,
+  });
+  sendMQTTMessage(topics.output.servoRight, {
+    source: "pid",
+    value: rightPulseWidth,
+  });
 }
 
 // Run control loop at regular intervals (e.g., 200ms)
-setInterval(controlLoop, 200);
-
-// Main control loop (called at regular intervals)
-async function controlLoop() {
+setInterval(async () => {
   const tiltAngles = await getTiltAngles();
-  
-  // Separate PID calculations for each motor, reversing output as necessary
-  const pidLeft = pidControl(tiltAngles.xAngle, previousErrorLeft, integralLeft, true);
-  const pidRight = pidControl(tiltAngles.yAngle, previousErrorRight, integralRight, false);
+  const pidLeft = pidControl(
+    tiltAngles.xAngle,
+    previousErrorLeft,
+    integralLeft,
+    true
+  );
+  const pidRight = pidControl(
+    tiltAngles.yAngle,
+    previousErrorRight,
+    integralRight,
+    false
+  );
 
-  // Update previous errors and integrals
   previousErrorLeft = pidLeft.previousError;
   integralLeft = pidLeft.integral;
   previousErrorRight = pidRight.previousError;
   integralRight = pidRight.integral;
 
-  sendMQTTMessage(topics.tiltAngles, {tiltAngles, source:'pid'});
-
-  // Update motors with the adjusted outputs
-  updateMotors(pidLeft.output, pidRight.output);
-
-  // Adjust servos for balance
-  adjustServos(tiltAngles.xAngle);
-}
+  sendMQTTMessage(topics.output.tiltAngles, { tiltAngles, source: "pid" });
+  
+  if (sensorAdjustmentsEnabled) {
+    updateMotors(pidLeft.output, pidRight.output);
+    adjustServos(tiltAngles.xAngle);
+  }
+}, 200);
 
 // Initialize MPU6050
 wakeUpMPU6050();

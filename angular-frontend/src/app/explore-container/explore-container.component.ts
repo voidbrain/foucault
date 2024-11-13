@@ -60,22 +60,46 @@ import * as THREE from 'three';
 })
 export class ExploreContainerComponent implements AfterViewInit {
   socket: Socket | null = null;
-  status: string = 'Connecting...';
+  socketStatus: string = 'Connecting...';
   heightLevel: number = 2;
-  isEnabled: boolean = true;
+  isSensorAdjustmentEnabled: boolean = true;
   consoleMessages: string[] = [];
   isConsoleAutoScrollEnabled: boolean = true;
 
-  topics = {
-    console: 'console/log',
-    accelData: 'controller/accelData',
-    tiltAngles: 'controller/tiltAngles',
-    motorLeft: 'controller/motorPWM/left',
-    motorRight: 'controller/motorPWM/right',
-    servoLeft: 'controller/servoPulseWidth/left',
-    servoRight: 'controller/servoPulseWidth/right',
+  walkForwardActive = false;
+  walkBackwardActive = false;
+  walkLeftActive = false;
+  walkRightActive = false;
 
-    move: 'console/move'
+  topics = {
+      input: {
+      console: 'console/log',
+      accelData: 'controller/accelData',
+      tiltAngles: 'controller/tiltAngles',
+      motorLeft: 'controller/motorPWM/left',
+      motorRight: 'controller/motorPWM/right',
+      servoLeft: 'controller/servoPulseWidth/left',
+      servoRight: 'controller/servoPulseWidth/right',
+
+      walkForward: "pid/move/forward",
+      walkBackward: "pid/move/backward",
+      walkLeft: "pid/move/left",
+      walkRight: "pid/move/right",
+      enableSensorAdjustementsTrue: "pid/sensor/enable/true",
+      enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+    },
+    output: {
+      walkForward: "pid/move/forward",
+      walkBackward: "pid/move/backward",
+      walkLeft: "pid/move/left",
+      walkRight: "pid/move/right",
+      stop: "pid/stop",
+      setHeightLow: "pid/set/height/low",
+      setHeightMid: "pid/set/height/mid",
+      setHeightHigh: "pid/set/height/high",
+      enableSensorAdjustementsTrue: "pid/sensor/enable/true",
+      enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+    }
   };
 
   scene!: THREE.Scene;
@@ -146,6 +170,7 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   adjustHeightEventFromSlider(event: CustomEvent) {
     this.adjustTHREERobotHeight(this.heights[event.detail.value - 1]);
+    this.sendSetHeightCommand(this.heights[event.detail.value - 1]);
   }
 
   adjustTHREERobotHeight(height: string) {
@@ -385,7 +410,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
 
     this.socket.on('connect', () => {
-      this.status = 'Connected';
+      this.socketStatus = 'Connected';
     });
 
     this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
@@ -395,34 +420,51 @@ export class ExploreContainerComponent implements AfterViewInit {
       } = message;
 
       switch (topic) {
-        case this.topics.accelData:
+        case this.topics.input.accelData:
           this.handleAccelData(parsedMessage as { accelX:any, accelY:any, accelZ:any });
           break;
 
-        case this.topics.tiltAngles:
+        case this.topics.input.tiltAngles:
           this.handleTiltAngles(parsedMessage.tiltAngles as { xAngle:number, yAngle:number }); // Access tiltAngles directly
           break;
 
-        case this.topics.motorLeft:
+        case this.topics.input.motorLeft:
           this.handleMotorPWM('left', parsedMessage as { value: number});
           break;
 
-        case this.topics.motorRight:
+        case this.topics.input.motorRight:
           this.handleMotorPWM('right', parsedMessage as { value: number});
           break;
 
-        case this.topics.servoLeft:
+        case this.topics.input.servoLeft:
           this.handleServoPulseWidth('left', parsedMessage as { value: number});
           break;
 
-        case this.topics.servoRight:
+        case this.topics.input.servoRight:
           this.handleServoPulseWidth('right', parsedMessage as { value: number});
           break;
 
-        case this.topics.console:
+        case this.topics.input.console:
           this.handleConsoleMessage(topic, parsedMessage.message, parsedMessage.source); // Access message content directly
           break;
 
+
+        case this.topics.input.walkForward:
+          this.walkForwardActive = true;
+          break;
+        case this.topics.input.walkBackward:
+          this.walkBackwardActive = true;
+          break;
+        case this.topics.input.walkLeft:
+          this.walkLeftActive = true;
+          break;
+        case this.topics.input.walkRight:
+          this.walkRightActive = true;
+          break;
+        case this.topics.input.enableSensorAdjustementsTrue:
+          break;
+        case this.topics.input.enableSensorAdjustementsFalse:
+          break;
         default:
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
           break;
@@ -513,26 +555,81 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateTHREERobotTilt(data: { xAngle: number; yAngle: number }) {
-    this.referencePlane.rotation.x = THREE.MathUtils.degToRad(data.xAngle);
+    
+    this.referencePlane.rotation.x = Math.PI / 2 + THREE.MathUtils.degToRad(data.xAngle);
     this.referencePlane.rotation.y = THREE.MathUtils.degToRad(data.yAngle);
-  }
-
-  toggleEnable(event: any) {
-    const { value, checked } = event.detail;
-    if (this.socket !== null) {
-      this.socket.emit('toggleEnable', checked);
-    } else {
-      console.warn('Socket is null');
-    }
   }
 
   sendControlCommand(command: string) {
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: 'console/move', direction: command, souce: 'Angular FE' });
+      let walk: string = '';
+      switch (command) {
+        case 'forward':
+          walk = this.topics.output.walkForward;
+          break;
+        case 'backward':
+          walk = this.topics.output.walkBackward;
+          break;
+        case 'left':
+          walk = this.topics.output.walkLeft;
+          break;
+        case 'right':
+          walk = this.topics.output.walkRight;
+          break;
+        default:
+          break;
+      }
+      this.socket.emit('message', { topic: walk, souce: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }
-    // this.logToConsole(`Moving: ${command}`);
+  }
+
+  sendSetHeightCommand(height: string) {
+    if (this.socket !== null) {
+      switch(height) {
+        case 'HEIGHT_LOW':
+          this.socket.emit('message', { topic: this.topics.output.setHeightLow, souce: 'Angular FE' });
+          break;
+        case 'HEIGHT_MID':
+          this.socket.emit('message', { topic: this.topics.output.setHeightMid, souce: 'Angular FE' });
+          break;
+        case 'HEIGHT_HIGH':
+          this.socket.emit('message', { topic: this.topics.output.setHeightHigh, souce: 'Angular FE' });
+          break;
+        
+
+      }
+      
+    } else {
+      console.warn('Socket is null');
+    }
+  }
+
+  sendStopCommand() {
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output.stop, souce: 'Angular FE' });
+    } else {
+      console.warn('Socket is null');
+    }
+  }
+
+  sendEnableSensorCommand(event: any) {
+    const { value, checked } = event.detail;
+    if (this.socket !== null) {
+      switch (checked) {
+        case true: 
+          this.socket.emit('message', { topic: this.topics.output.enableSensorAdjustementsTrue, souce: 'Angular FE' });
+          break;
+        case false:
+          this.socket.emit('message', { topic: this.topics.output.enableSensorAdjustementsFalse, souce: 'Angular FE' });
+          break;
+
+      }
+      
+    } else {
+      console.warn('Socket is null');
+    }
   }
 
   logToConsole(message: string) {

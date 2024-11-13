@@ -4,14 +4,15 @@ const { exec } = require('child_process');
 
 // MQTT Topics object for cleaner management
 const topics = {
-  //listen
-  motorLeft: 'controller/motorPWM/left',
-  motorRight: 'controller/motorPWM/right',
-  servoLeft: 'controller/servoPulseWidth/left',
-  servoRight: 'controller/servoPulseWidth/right',
-
-  //send
-  console: 'console/log',
+  input: {
+    motorLeft: 'controller/motorPWM/left',
+    motorRight: 'controller/motorPWM/right',
+    servoLeft: 'controller/servoPulseWidth/left',
+    servoRight: 'controller/servoPulseWidth/right',
+  },
+  output: {
+    console: 'console/log',
+  }
 };
 
 // Setup MQTT connection
@@ -34,7 +35,7 @@ exec('pigpiod', (err, stdout, stderr) => {
 
 // Subscribe to relevant topics on MQTT client connection
 mqttClient.on('connect', () => {
-  Object.values(topics).forEach((topic) => {
+  Object.values(topics.input).forEach((topic) => {
     mqttClient.subscribe(topic, (err) => {
       if (err) {
         console.error(`Error subscribing to ${topic}: ${err.message}`);
@@ -66,39 +67,39 @@ function handleMqttMessage(topic, value) {
   const isValidMotor = value >= 0 && value <= 255;    // Valid range for motor PWM
 
   switch (topic) {
-    case topics.servoLeft:
+    case topics.input.servoLeft:
       if (isValidServo) {
         servoLeft.servoWrite(value);
-        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Left Servo set to: ${value}`});
+        sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Left Servo set to: ${value}`});
       } else {
-        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Invalid value for Left Servo: ${value}`});
+        sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Invalid value for Left Servo: ${value}`});
       }
       break;
 
-    case topics.servoRight:
+    case topics.input.servoRight:
       if (isValidServo) {
         servoRight.servoWrite(value);
-        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Right Servo set to: ${value}`});
+        sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Right Servo set to: ${value}`});
       } else {
-        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Invalid value for Right Servo: ${value}`});
+        sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Invalid value for Right Servo: ${value}`});
       }
       break;
 
-    case topics.motorLeft:
+    case topics.input.motorLeft:
       if (isValidMotor) {
         motorLeft.pwmWrite(value);
-        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Left Motor PWM set to: ${value}`});
+        sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Left Motor PWM set to: ${value}`});
       } else {
-        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Invalid value for Left Motor PWM: ${value}`});
+        sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Invalid value for Left Motor PWM: ${value}`});
       }
       break;
 
-    case topics.motorRight:
+    case topics.input.motorRight:
       if (isValidMotor) {
         motorRight.pwmWrite(value);
-        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Right Motor PWM set to: ${value}`});
+        sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Right Motor PWM set to: ${value}`});
       } else {
-        sendMQTTMessage(topics.console, { source:'motor-controller', message: `Invalid value for Right Motor PWM: ${value}`});
+        sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Invalid value for Right Motor PWM: ${value}`});
       }
       break;
 
