@@ -70,6 +70,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   walkBackwardActive = false;
   walkLeftActive = false;
   walkRightActive = false;
+  enableSensorAdjustements = true;
 
   topics = {
       input: {
@@ -451,23 +452,21 @@ export class ExploreContainerComponent implements AfterViewInit {
 
         case this.topics.input.walkForward:
           this.walkForwardActive = true;
-          this.cdr.detectChanges();
           break;
         case this.topics.input.walkBackward:
           this.walkBackwardActive = true;
-          this.cdr.detectChanges();
           break;
         case this.topics.input.walkLeft:
           this.walkLeftActive = true;
-          this.cdr.detectChanges();
           break;
         case this.topics.input.walkRight:
           this.walkRightActive = true;
-          this.cdr.detectChanges();
           break;
         case this.topics.input.enableSensorAdjustementsTrue:
+          this.enableSensorAdjustements = true;
           break;
         case this.topics.input.enableSensorAdjustementsFalse:
+          this.enableSensorAdjustements = false;
           break;
         default:
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
@@ -542,14 +541,14 @@ export class ExploreContainerComponent implements AfterViewInit {
   updateConsoleTiltAngles(data: { xAngle: number; yAngle: number }) {
     document.getElementById(
       'tiltAngles-content'
-    )!.innerHTML = `X: ${data.xAngle}°, Y: ${data.yAngle}°`;
+    )!.innerHTML = `X: ${data.xAngle}°<br /> Y: ${data.yAngle}°`;
     this.cdr.detectChanges();
   }
 
   updateConsoleAccelData(data:any) {
     document.getElementById(
       'accelData-content'
-    )!.innerHTML = `X: ${data.accelData.accelX}°, Y: ${data.accelData.accelY}°, Z: ${data.accelData.accelZ}°`;
+    )!.innerHTML = `X: ${data.accelData.accelX}°<br /> Y: ${data.accelData.accelY}°<br /> Z: ${data.accelData.accelZ}°`;
     this.cdr.detectChanges();
   }
 

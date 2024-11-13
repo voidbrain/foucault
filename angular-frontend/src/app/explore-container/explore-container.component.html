@@ -99,20 +99,20 @@
                 <ion-col size="6">
                   <ion-card>
                     <div>
-                      <ion-card-title>Accelerometer</ion-card-title>
+                      <ion-card-title class="ml-2">Accelerometer</ion-card-title>
                     </div>
-                    <ion-card-content>
-                      <ion-text id="accelData-content">Loading...</ion-text>
+                    <ion-card-content class="secondary">
+                      <ion-text [color]="enableSensorAdjustements ? 'primary' : 'secondary" id="accelData-content">Loading...</ion-text>
                     </ion-card-content>
                   </ion-card>
                   </ion-col>
                 <ion-col size="6">
                   <ion-card>
                     <div>
-                      <ion-card-title>Tilt Data</ion-card-title>
+                      <ion-card-title class="ml-2">Tilt Data</ion-card-title>
                     </div>
                     <ion-card-content>
-                      <ion-text id="tiltAngles-content">Loading...</ion-text>
+                      <ion-text [color]="enableSensorAdjustements ? 'primary' : 'secondary" id="tiltAngles-content">Loading...</ion-text>
                     </ion-card-content>
                   </ion-card>
                   </ion-col>
@@ -137,7 +137,7 @@
                 <ion-col size="6">
                   <ion-card>
                     <div>
-                      <ion-card-title>Motor PWM</ion-card-title>
+                      <ion-card-title class="ml-2">Motor PWM</ion-card-title>
                     </div>
                     <ion-card-content>
                       <div id="motor-content">
@@ -154,7 +154,7 @@
                 <ion-col size="6">
                   <ion-card>
                     <div>
-                      <ion-card-title>Servo Pulse </ion-card-title>
+                      <ion-card-title class="ml-2">Servo Pulse </ion-card-title>
                     </div>
                     <ion-card-content>
                       <div id="servo-content">
