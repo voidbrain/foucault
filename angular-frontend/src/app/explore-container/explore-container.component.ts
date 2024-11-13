@@ -451,15 +451,19 @@ export class ExploreContainerComponent implements AfterViewInit {
 
         case this.topics.input.walkForward:
           this.walkForwardActive = true;
+          this.cdr.detectChanges();
           break;
         case this.topics.input.walkBackward:
           this.walkBackwardActive = true;
+          this.cdr.detectChanges();
           break;
         case this.topics.input.walkLeft:
           this.walkLeftActive = true;
+          this.cdr.detectChanges();
           break;
         case this.topics.input.walkRight:
           this.walkRightActive = true;
+          this.cdr.detectChanges();
           break;
         case this.topics.input.enableSensorAdjustementsTrue:
           break;
