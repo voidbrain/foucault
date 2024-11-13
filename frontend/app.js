@@ -31,14 +31,14 @@ const topics = {
     motorRight: 'controller/motorPWM/right',
     servoLeft: 'controller/servoPulseWidth/left',
     servoRight: 'controller/servoPulseWidth/right',
-  },
-  output:{
 
-    walk: 'pid/move',
-    stop: 'pid/stop',
-    setHeight: 'pid/set/height',
-    enableSensorAdjustements: 'pid/sensor/enable',
-  }
+    walkForward: "pid/move/forward",
+    walkBackward: "pid/move/backward",
+    walkLeft: "pid/move/left",
+    walkRight: "pid/move/right",
+    enableSensorAdjustementsTrue: "pid/sensor/enable/true",
+    enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+  },
 };
 
 // Subscribe to all MQTT topics
@@ -75,14 +75,6 @@ io.on('connection', (socket) => {
 // When MQTT messages are received, emit them to the connected frontend
 mqttClient.on('message', (topic, message) => {
   let parsedMessage = {};
-
-  // Attempt to parse the message if it's JSON
-  try {
-    parsedMessage = JSON.parse(message.toString());
-  } catch (error) {
-    console.error('Failed to parse MQTT message:', error);
-    parsedMessage = { message: message.toString(), value: null };
-  }
 
   // Emit the parsed message to the frontend via WebSocket
   io.emit('mqtt-message', { topic, data: parsedMessage });

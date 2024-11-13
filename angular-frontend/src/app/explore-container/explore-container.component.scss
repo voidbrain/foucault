@@ -14,19 +14,15 @@
 
 @keyframes pulse {
   0% {
-    transform: scale(1);
+    background-color: var(--ion-color-primary); /* Default primary color */
     opacity: 1;
   }
   50% {
-    transform: scale(1.1);
+    background-color: var(--ion-color-secondary); /* Change to secondary color */
     opacity: 0.7;
   }
   100% {
-    transform: scale(1);
+    background-color: var(--ion-color-primary); /* Return to primary color */
     opacity: 1;
   }
-}
-
-.ml-2 {
-  margin-left: 20px;
 }
