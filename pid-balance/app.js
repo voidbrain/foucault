@@ -37,7 +37,9 @@ const mqttClient = mqtt.connect('mqtt://mqtt-broker:1883');
 mqttClient.on('connect', () => console.log('Connected to MQTT broker'));
 mqttClient.on('message', message => { /* handle messages here if necessary */
   let increment;
+  console.log(message);
   const {topic, direction, source } = message;
+  console.log(topic, direction, source);
   switch(topic) {
     case 'console/move': {
       switch(direction) {
