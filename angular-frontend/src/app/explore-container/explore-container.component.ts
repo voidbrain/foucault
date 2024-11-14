@@ -143,7 +143,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     document.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       let command;
-      
+
       switch (key) {
           case 'w':
           case "ArrowUp":
@@ -164,7 +164,7 @@ export class ExploreContainerComponent implements AfterViewInit {
           default:
               return; // Ignore other keys
       }
-  
+
       this.sendControlCommand(command);
   });
   }
@@ -204,7 +204,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateTHREERobotBody(targetHeight: number, offsetHeight: number) {
-    
+
     this.referencePlane.position.y = targetHeight + offsetHeight + 0.6;
   }
 
@@ -416,6 +416,7 @@ export class ExploreContainerComponent implements AfterViewInit {
 
     this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
       console.log("a")
+      console.log(message);
     });
 
     this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
@@ -493,7 +494,7 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   handleConsoleMessage(topic: string, message: string, source: string) {
     const m = JSON.stringify(message);
-    this.logToConsole(`topic: ${topic}, message:${m}`); 
+    this.logToConsole(`topic: ${topic}, message:${m}`);
   }
 
   handleMotorPWM(wheel: string, data: { value: number }) {
@@ -505,7 +506,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     // Selectively update the left or right motor value in the HTML
     const motorValueElement = document.getElementById(`${wheel}-motor-value`);
     if (motorValueElement) {
-      
+
       motorValueElement.innerText = `${data.value}`;
     }
 
@@ -567,7 +568,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateTHREERobotTilt(data: { xAngle: number; yAngle: number }) {
-    
+
     this.referencePlane.rotation.x = Math.PI / 2 + THREE.MathUtils.degToRad(data.xAngle);
     this.referencePlane.rotation.y = THREE.MathUtils.degToRad(data.yAngle);
   }
@@ -609,10 +610,10 @@ export class ExploreContainerComponent implements AfterViewInit {
         case 'HEIGHT_HIGH':
           this.socket.emit('message', { topic: this.topics.output.setHeightHigh, souce: 'Angular FE' });
           break;
-        
+
 
       }
-      
+
     } else {
       console.warn('Socket is null');
     }
@@ -630,7 +631,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     const { value, checked } = event.detail;
     if (this.socket !== null) {
       switch (checked) {
-        case true: 
+        case true:
           this.socket.emit('message', { topic: this.topics.output.enableSensorAdjustementsTrue, souce: 'Angular FE' });
           break;
         case false:
@@ -638,7 +639,7 @@ export class ExploreContainerComponent implements AfterViewInit {
           break;
 
       }
-      
+
     } else {
       console.warn('Socket is null');
     }
@@ -658,10 +659,10 @@ export class ExploreContainerComponent implements AfterViewInit {
 }
 
 
-/** 
- * 
- * 
- * 
+/**
+ *
+ *
+ *
  {
     "topic": "controller/servoPulseWidth/right",
     "data": {
