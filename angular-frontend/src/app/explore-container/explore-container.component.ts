@@ -415,10 +415,17 @@ export class ExploreContainerComponent implements AfterViewInit {
     });
 
     this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
+      console.log("a")
+    });
+
+    this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
       const {
         topic,
         data: { ...parsedMessage },
       } = message;
+      console.log("b")
+      console.log(message);
+
 
       switch (topic) {
         case this.topics.input.accelData:
@@ -539,6 +546,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateConsoleTiltAngles(data: { xAngle: number; yAngle: number }) {
+    console.log(data);
     document.getElementById(
       'tiltAngles-content'
     )!.innerHTML = `X: ${data.xAngle}°<br /> Y: ${data.yAngle}°`;
@@ -546,6 +554,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateConsoleAccelData(data:any) {
+    console.log(data);
     document.getElementById(
       'accelData-content'
     )!.innerHTML = `X: ${data.accelData.accelX}°<br /> Y: ${data.accelData.accelY}°<br /> Z: ${data.accelData.accelZ}°`;

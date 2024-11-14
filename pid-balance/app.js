@@ -141,6 +141,7 @@ function handleWalk(direction) {
 
 // Function to send an MQTT message
 function sendMQTTMessage(topic, object) {
+  console.log(topic,object)
   mqttClient.publish(topic, JSON.stringify(object), (err) => {
     if (err) console.error("Error sending MQTT object:", err);
   });
