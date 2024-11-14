@@ -61,16 +61,20 @@ import * as THREE from 'three';
 export class ExploreContainerComponent implements AfterViewInit {
   socket: Socket | null = null;
   socketStatus: string = 'Connecting...';
+
+  Kp = 1.2; // Proportional gain
+  Ki = 0.0; // Integral gain
+  Kd = 0.4; // Derivative gain
   heightLevel: number = 2;
   isSensorAdjustmentEnabled: boolean = true;
-  consoleMessages: string[] = [];
+  
   isConsoleAutoScrollEnabled: boolean = true;
+  consoleMessages: string[] = [];
 
   walkForwardActive = false;
   walkBackwardActive = false;
   walkLeftActive = false;
   walkRightActive = false;
-  enableSensorAdjustements = true;
 
   topics = {
       input: {
@@ -100,6 +104,9 @@ export class ExploreContainerComponent implements AfterViewInit {
       setHeightHigh: "pid/set/height/high",
       enableSensorAdjustementsTrue: "pid/sensor/enable/true",
       enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+      setKp: "pid/set/Kp",
+      setKi: "pid/set/Ki",
+      setKd: "pid/set/Kd",
     }
   };
 
@@ -206,6 +213,15 @@ export class ExploreContainerComponent implements AfterViewInit {
   updateTHREERobotBody(targetHeight: number, offsetHeight: number) {
 
     this.referencePlane.position.y = targetHeight + offsetHeight + 0.6;
+  }
+
+  updatePID() {
+    console.log('Updated PID constants:', { Kp: this.Kp, Ki: this.Ki, Kd: this.Kd });
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output.setKp, value: this.Kp.toString(), souce: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output.setKi, value: this.Kp.toString(), souce: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output.setKd, value: this.Kp.toString(), souce: 'Angular FE' });
+    }
   }
 
   adjustTHREERobotLegPosition(x: number, height: number) {
@@ -415,22 +431,19 @@ export class ExploreContainerComponent implements AfterViewInit {
     });
 
     this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
-      console.log("a")
-      console.log(message);
-    });
-
-    this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
       const {
         topic,
-        data: { ...parsedMessage },
+        data,
       } = message;
-      console.log("b")
-      console.log(message);
-
+      let parsedMessage;
+      if(data) {
+        parsedMessage = JSON.parse(data);
+      }
+      
 
       switch (topic) {
         case this.topics.input.accelData:
-          this.handleAccelData(parsedMessage as { accelX:any, accelY:any, accelZ:any });
+          this.handleAccelData(parsedMessage as { accelX:number, accelY:number, accelZ:number });
           break;
 
         case this.topics.input.tiltAngles:
@@ -471,10 +484,10 @@ export class ExploreContainerComponent implements AfterViewInit {
           this.walkRightActive = true;
           break;
         case this.topics.input.enableSensorAdjustementsTrue:
-          this.enableSensorAdjustements = true;
+          this.isSensorAdjustmentEnabled = true;
           break;
         case this.topics.input.enableSensorAdjustementsFalse:
-          this.enableSensorAdjustements = false;
+          this.isSensorAdjustmentEnabled = false;
           break;
         default:
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
@@ -483,7 +496,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     });
   }
 
-  handleAccelData(data: { accelX: any; accelY: any; accelZ: any }) {
+  handleAccelData(data: { accelX: number; accelY: number; accelZ: number }) {
     this.updateConsoleAccelData(data);
   }
 
@@ -547,19 +560,21 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateConsoleTiltAngles(data: { xAngle: number; yAngle: number }) {
-    console.log(data);
-    document.getElementById(
-      'tiltAngles-content'
-    )!.innerHTML = `X: ${data.xAngle}°<br /> Y: ${data.yAngle}°`;
-    this.cdr.detectChanges();
+    if(data){
+      document.getElementById(
+        'tiltAngles-content'
+      )!.innerHTML = `X: ${data?.xAngle}°<br /> Y: ${data?.yAngle}°`;
+      this.cdr.detectChanges();
+    }
   }
 
   updateConsoleAccelData(data:any) {
-    console.log(data);
-    document.getElementById(
-      'accelData-content'
-    )!.innerHTML = `X: ${data.accelData.accelX}°<br /> Y: ${data.accelData.accelY}°<br /> Z: ${data.accelData.accelZ}°`;
-    this.cdr.detectChanges();
+    if(data){
+      document.getElementById(
+        'accelData-content'
+      )!.innerHTML = `X: ${data?.accelData.accelX}°<br /> Y: ${data?.accelData.accelY}°<br /> Z: ${data?.accelData.accelZ}°`;
+      this.cdr.detectChanges();
+    }
   }
 
   updateTHREERobotWheelMovement(data: { leftHeight: number; rightHeight: number }) {
@@ -627,19 +642,26 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
   }
 
-  sendEnableSensorCommand(event: any) {
-    const { value, checked } = event.detail;
+  toggleEnableSensor() {
     if (this.socket !== null) {
-      switch (checked) {
+      this.isSensorAdjustmentEnabled = !this.isSensorAdjustmentEnabled;
+      switch (this.isSensorAdjustmentEnabled) {
         case true:
-          this.socket.emit('message', { topic: this.topics.output.enableSensorAdjustementsTrue, souce: 'Angular FE' });
+          this.sendEnableSensorCommand(this.topics.output.enableSensorAdjustementsTrue);
           break;
         case false:
-          this.socket.emit('message', { topic: this.topics.output.enableSensorAdjustementsFalse, souce: 'Angular FE' });
+          this.sendEnableSensorCommand(this.topics.output.enableSensorAdjustementsFalse);
           break;
-
       }
 
+    } else {
+      console.warn('Socket is null');
+    }
+  }
+
+  sendEnableSensorCommand(topic: string) {
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: topic, souce: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }

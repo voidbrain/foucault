@@ -5,10 +5,9 @@ const mqtt = require("mqtt");
 const address = 0x68; // MPU6050 default I2C address
 const wire = new i2c(address, { device: "/dev/i2c-1" });
 
-// PID constants
-const Kp = 1.2; // Proportional gain
-const Ki = 0.0; // Integral gain
-const Kd = 0.4; // Derivative gain
+Kp = 0;
+Ki = 0;
+Kd = 0;
 
 // PID variables
 let previousErrorLeft = 0;
@@ -57,6 +56,9 @@ const topics = {
     setHeightHigh: "pid/set/height/high",
     enableSensorAdjustementsTrue: "pid/sensor/enable/true",
     enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+    setKp: "pid/set/Kp",
+    setKi: "pid/set/Ki",
+    setKd: "pid/set/Kd",
   },
 };
 
@@ -100,42 +102,47 @@ mqttClient.on("message", (topic) => {
         handleSetSensorAdj(true)
         break;
       case topics.input.enableSensorAdjustementsFalse:
-        handleSetSensorAdj(true)
+        handleSetSensorAdj(false)
+        break;
+      case topics.input.setKp:
+        handleSetPIDParameter("Kp", value);
+        break;
+      case topics.input.setKi:
+        handleSetPIDParameter("Ki", value);
+        break;
+      case topics.input.setKd:
+        handleSetPIDParameter("Kd", value);
         break;
     }
 });
 
+function handleSetPIDParameter(param, value) {
+  if (!isNaN(value)) {
+    switch (param) {
+      case "Kp":
+        Kp = value;
+        console.log(`Kp set to ${Kp}`);
+        break;
+      case "Ki":
+        Ki = value;
+        console.log(`Ki set to ${Ki}`);
+        break;
+      case "Kd":
+        Kd = value;
+        console.log(`Kd set to ${Kd}`);
+        break;
+    }
+  } else {
+    console.warn(`Invalid value for ${param}: ${value}`);
+  }
+}
+
+
 function handleSetSensorAdj(value){
+  console.log("set sensor adj", value)
   sensorAdjustmentsEnabled = value;
 
 }
-// function adjustServos(xAngle) {
-//   // Base pulse width for the current height level
-//   const basePulseWidth = heightLevels[currentHeight].basePulseWidth;
-
-//   // Calculate height difference from the tilt angle
-//   const heightDifference = xAngle * 0.1;
-  
-//   // Adjust left and right pulse widths
-//   const leftPulseWidth = Math.max(
-//     500,
-//     Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
-//   );
-//   const rightPulseWidth = Math.max(
-//     500,
-//     Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
-//   );
-
-//   // Publish servo pulse width values via MQTT
-//   sendMQTTMessage(topics.output.servoLeft, {
-//     source: "pid",
-//     value: leftPulseWidth,
-//   });
-//   sendMQTTMessage(topics.output.servoRight, {
-//     source: "pid",
-//     value: rightPulseWidth,
-//   });
-// }
 
 // Modify the handleSetHeight function to update the current height setting
 function handleSetHeight(height) {
@@ -148,12 +155,14 @@ function handleSetHeight(height) {
 }
 
 function handleStop() {
+  console.log(`stop`);
   pidControl(setpoint, previousErrorLeft, integralLeft, true);
   pidControl(setpoint, previousErrorRight, integralRight, false);
 }
 
 // Function to handle walking directions
 function handleWalk(direction) {
+  console.log(`walk`, direction);
   switch (direction) {
     case "forward":
       pidControl(setpoint + increment, previousErrorLeft, integralLeft, true);
@@ -196,8 +205,8 @@ function handleWalk(direction) {
 
 // Function to send an MQTT message
 function sendMQTTMessage(topic, object) {
-  console.log(topic,object)
   mqttClient.publish(topic, JSON.stringify(object), (err) => {
+    // console.log("Sending MQTT object:", object);
     if (err) console.error("Error sending MQTT object:", err);
   });
 }
@@ -288,27 +297,6 @@ function updateMotors(leftOutput, rightOutput) {
   });
 }
 
-// Adjust servos based on height difference calculation
-// function adjustServos(xAngle) {
-//   const heightDifference = xAngle * 0.1;
-//   const leftPulseWidth = Math.max(
-//     500,
-//     Math.min(2500, Math.round(500 + heightDifference * 2000))
-//   );
-//   const rightPulseWidth = Math.max(
-//     500,
-//     Math.min(2500, Math.round(500 + -heightDifference * 2000))
-//   );
-
-//   sendMQTTMessage(topics.output.servoLeft, {
-//     source: "pid",
-//     value: leftPulseWidth,
-//   });
-//   sendMQTTMessage(topics.output.servoRight, {
-//     source: "pid",
-//     value: rightPulseWidth,
-//   });
-// }
 function adjustServos(xAngle) {
   // Base pulse width for the current height level
   const basePulseWidth = heightLevels[currentHeight].basePulseWidth;

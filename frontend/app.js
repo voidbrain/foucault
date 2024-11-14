@@ -38,6 +38,9 @@ const topics = {
     walkRight: "pid/move/right",
     enableSensorAdjustementsTrue: "pid/sensor/enable/true",
     enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+    setKp: "pid/set/Kp",
+    setKi: "pid/set/Ki",
+    setKd: "pid/set/Kd",
   },
 };
 
@@ -52,18 +55,15 @@ Object.keys(topics.input).forEach(topic => {
 
 // Listen for 'mqtt-publish' events from the frontend
 io.on('connection', (socket) => {
-  console.log('Client connected');
-
   socket.on('message', (data) => {
     const { topic, message } = data;
-    console.log(data);
 
     // Publish the message to the specified MQTT topic
     mqttClient.publish(topic, message, (err) => {
       if (err) {
         console.error(`Failed to publish message to ${topic}:`, err);
       } else {
-        console.log(`Message published to topic ${topic}`);
+        console.log(`Message published to topic ${topic}`, data);
       }
     });
   });
@@ -76,6 +76,14 @@ io.on('connection', (socket) => {
 // When MQTT messages are received, emit them to the connected frontend
 mqttClient.on('message', (topic, message) => {
   let parsedMessage = {};
+  // console.log(topic, message.toString())
+  // Attempt to parse the message if it's JSON
+  try {
+    parsedMessage = message.toString();
+  } catch (error) {
+    console.error('Failed to parse MQTT message:', error);
+    parsedMessage = { message: message.toString(), value: null };
+  }
 
   // Emit the parsed message to the frontend via WebSocket
   io.emit('mqtt-message', { topic, data: parsedMessage });
