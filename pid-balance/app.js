@@ -5,9 +5,9 @@ const mqtt = require("mqtt");
 const address = 0x68; // MPU6050 default I2C address
 const wire = new i2c(address, { device: "/dev/i2c-1" });
 
-Kp = 0;
-Ki = 0;
-Kd = 0;
+let Kp = 0;
+let Ki = 0;
+let Kd = 0;
 
 // PID variables
 let previousErrorLeft = 0;
@@ -15,7 +15,7 @@ let previousErrorRight = 0;
 let integralLeft = 0;
 let integralRight = 0;
 let setpoint = 0; // Desired balance angle (0 for upright)
-let increment = 1; // Default increment for movement adjustments
+let incrementDegree = 0; // Default increment for movement adjustments
 
 // MPU6050 Registers
 const PWR_MGMT_1 = 0x6b;
@@ -59,6 +59,7 @@ const topics = {
     setKp: "pid/set/Kp",
     setKi: "pid/set/Ki",
     setKd: "pid/set/Kd",
+    setIncrementDegree: "pid/set/increment",
   },
 };
 
@@ -72,7 +73,7 @@ mqttClient.on("connect", () => {
 });
 
 // Message handler for subscribed topics
-mqttClient.on("message", (topic) => {
+mqttClient.on("message", (topic, value) => {
     switch (topic) {
       case topics.input.walkForward:
         handleWalk("forward");
@@ -113,22 +114,39 @@ mqttClient.on("message", (topic) => {
       case topics.input.setKd:
         handleSetPIDParameter("Kd", value);
         break;
+      case topics.input.setIncrementDegree:
+        handleSetIncrementDegree(value);
+        break;
     }
 });
 
+function handleSetIncrementDegree(value) {
+  if (!isNaN(value)) {
+    incrementDegree = value;
+    console.log(`Increment set to ${incrementDegree}`);
+  } else {
+    console.warn(`Invalid value for increment: ${value}`);
+  }
+}
+
 function handleSetPIDParameter(param, value) {
   if (!isNaN(value)) {
+    console.log("1", value)
+    console.log("2", value.toString())
+    console.log("3", JSON.parse(value))
+    console.log("4", JSON.parse(value.toString()))
+    
     switch (param) {
       case "Kp":
-        Kp = value;
+        Kp = value.toString();
         console.log(`Kp set to ${Kp}`);
         break;
       case "Ki":
-        Ki = value;
+        Ki = value.toString();
         console.log(`Ki set to ${Ki}`);
         break;
       case "Kd":
-        Kd = value;
+        Kd = value.toString();
         console.log(`Kd set to ${Kd}`);
         break;
     }
@@ -165,36 +183,36 @@ function handleWalk(direction) {
   console.log(`walk`, direction);
   switch (direction) {
     case "forward":
-      pidControl(setpoint + increment, previousErrorLeft, integralLeft, true);
+      pidControl(setpoint + incrementDegree, previousErrorLeft, integralLeft, true);
       pidControl(
-        setpoint + increment,
+        setpoint + incrementDegree,
         previousErrorRight,
         integralRight,
         false
       );
       break;
     case "backward":
-      pidControl(setpoint - increment, previousErrorLeft, integralLeft, true);
+      pidControl(setpoint - incrementDegree, previousErrorLeft, integralLeft, true);
       pidControl(
-        setpoint - increment,
+        setpoint - incrementDegree,
         previousErrorRight,
         integralRight,
         false
       );
       break;
     case "left":
-      pidControl(setpoint + increment, previousErrorLeft, integralLeft, true);
+      pidControl(setpoint + incrementDegree, previousErrorLeft, integralLeft, true);
       pidControl(
-        setpoint - increment,
+        setpoint - incrementDegree,
         previousErrorRight,
         integralRight,
         false
       );
       break;
     case "right":
-      pidControl(setpoint - increment, previousErrorLeft, integralLeft, true);
+      pidControl(setpoint - incrementDegree, previousErrorLeft, integralLeft, true);
       pidControl(
-        setpoint + increment,
+        setpoint + incrementDegree,
         previousErrorRight,
         integralRight,
         false

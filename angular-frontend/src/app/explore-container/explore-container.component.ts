@@ -9,6 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { ConfigService } from '../services/config/config.service';
 import {
   IonContent,
   IonHeader,
@@ -27,6 +28,7 @@ import {
   IonRange,
   IonToggle,
   IonCardSubtitle,
+  IonItem
 } from '@ionic/angular/standalone';
 import { SocketService } from '../services/send-mqtt/send-mqtt.service';
 import * as THREE from 'three';
@@ -54,6 +56,7 @@ import * as THREE from 'three';
     IonRange,
     IonToggle,
     IonCardSubtitle,
+    IonItem,
     CommonModule,
     FormsModule,
   ],
@@ -65,6 +68,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   Kp = 1.2; // Proportional gain
   Ki = 0.0; // Integral gain
   Kd = 0.4; // Derivative gain
+  incrementDegree = 1; // Default increment for movement adjustments
   heightLevel: number = 2;
   isSensorAdjustmentEnabled: boolean = true;
   
@@ -77,7 +81,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   walkRightActive = false;
 
   topics = {
-      input: {
+    input: {
       console: 'console/log',
       accelData: 'controller/accelData',
       tiltAngles: 'controller/tiltAngles',
@@ -90,15 +94,6 @@ export class ExploreContainerComponent implements AfterViewInit {
       walkBackward: "pid/move/backward",
       walkLeft: "pid/move/left",
       walkRight: "pid/move/right",
-      enableSensorAdjustementsTrue: "pid/sensor/enable/true",
-      enableSensorAdjustementsFalse: "pid/sensor/enable/false",
-    },
-    output: {
-      walkForward: "pid/move/forward",
-      walkBackward: "pid/move/backward",
-      walkLeft: "pid/move/left",
-      walkRight: "pid/move/right",
-      stop: "pid/stop",
       setHeightLow: "pid/set/height/low",
       setHeightMid: "pid/set/height/mid",
       setHeightHigh: "pid/set/height/high",
@@ -107,6 +102,23 @@ export class ExploreContainerComponent implements AfterViewInit {
       setKp: "pid/set/Kp",
       setKi: "pid/set/Ki",
       setKd: "pid/set/Kd",
+      setincrementDegree: "pid/set/increment",
+    },
+    output: {
+      walkForward: "pid/move/forward",
+      walkBackward: "pid/move/backward",
+      walkLeft: "pid/move/left",
+      walkRight: "pid/move/right",
+      stop: "pid/stop",
+      // setHeightLow: "pid/set/height/low",
+      // setHeightMid: "pid/set/height/mid",
+      // setHeightHigh: "pid/set/height/high",
+      enableSensorAdjustementsTrue: "pid/sensor/enable/true",
+      enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+      // setKp: "pid/set/Kp",
+      // setKi: "pid/set/Ki",
+      // setKd: "pid/set/Kd",
+      // setincrementDegree: "pid/set/increment",
     }
   };
 
@@ -138,7 +150,8 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   constructor(
     private socketService: SocketService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef, 
+    private configService: ConfigService
   ) {}
 
   ngAfterViewInit(): void {
@@ -177,7 +190,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   adjustHeightEventFromSlider(event: CustomEvent) {
-    this.adjustTHREERobotHeight(this.heights[event.detail.value - 1]);
+    // 
     this.sendSetHeightCommand(this.heights[event.detail.value - 1]);
   }
 
@@ -219,8 +232,14 @@ export class ExploreContainerComponent implements AfterViewInit {
     console.log('Updated PID constants:', { Kp: this.Kp, Ki: this.Ki, Kd: this.Kd });
     if (this.socket !== null) {
       this.socket.emit('message', { topic: this.topics.output.setKp, value: this.Kp.toString(), souce: 'Angular FE' });
-      this.socket.emit('message', { topic: this.topics.output.setKi, value: this.Kp.toString(), souce: 'Angular FE' });
-      this.socket.emit('message', { topic: this.topics.output.setKd, value: this.Kp.toString(), souce: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output.setKi, value: this.Ki.toString(), souce: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output.setKd, value: this.Kd.toString(), souce: 'Angular FE' });
+    }
+  }
+
+  updateIncrementDegree(){
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output.setincrementDegree, value: this.incrementDegree.toString(), souce: 'Angular FE' });
     }
   }
 
@@ -483,11 +502,33 @@ export class ExploreContainerComponent implements AfterViewInit {
         case this.topics.input.walkRight:
           this.walkRightActive = true;
           break;
+        case this.topics.input.setHeightLow :
+          this.adjustTHREERobotHeight(this.heights[0]);
+        break;
+        case this.topics.input.setHeightMid :
+          this.adjustTHREERobotHeight(this.heights[1]);
+        break;
+        case this.topics.input.setHeightHigh:
+          this.adjustTHREERobotHeight(this.heights[2]);
+        break;
         case this.topics.input.enableSensorAdjustementsTrue:
           this.isSensorAdjustmentEnabled = true;
           break;
         case this.topics.input.enableSensorAdjustementsFalse:
           this.isSensorAdjustmentEnabled = false;
+          break;
+
+         case this.topics.input.setKp:
+            this.Kp = parsedMessage.value;
+          break;
+         case this.topics.input.setKi:
+            this.Ki = parsedMessage.value;
+          break;
+         case this.topics.input.setKd:
+            this.Kd = parsedMessage.value;
+          break;
+         case this.topics.input.setincrementDegree:
+            this.incrementDegree = parsedMessage.value;
           break;
         default:
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
@@ -520,7 +561,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     const motorValueElement = document.getElementById(`${wheel}-motor-value`);
     if (motorValueElement) {
 
-      motorValueElement.innerText = `${data.value}`;
+      motorValueElement.innerText = `${value.value}`;
     }
 
     this.cdr.detectChanges();
@@ -560,6 +601,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateConsoleTiltAngles(data: { xAngle: number; yAngle: number }) {
+    console.log(data)
     if(data){
       document.getElementById(
         'tiltAngles-content'
@@ -679,33 +721,3 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.socket?.disconnect();
   }
 }
-
-
-/**
- *
- *
- *
- {
-    "topic": "controller/servoPulseWidth/right",
-    "data": {
-        "source": "pid",
-        "value": 500
-    }
-}
-
-{
-    "topic": "controller/motorPWM/right",
-    "data": {
-        "source": "pid",
-        "value": 127
-    }
-}
-
-    {
-    "topic": "controller/motorPWM/right",
-    "data": {
-        "source": "pid",
-        "value": 127
-    }
-}
-*/

@@ -1,0 +1,8 @@
+{
+  "Kp": 1.2,
+  "Ki": 0.0,
+  "Kd": 0.4,
+  "incrementDegree": 1,
+  "heightLevel": 2,
+  "isSensorAdjustmentEnabled": true
+}

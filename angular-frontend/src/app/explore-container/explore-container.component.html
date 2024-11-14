@@ -55,21 +55,23 @@
                 <ion-col size="6">
                   <ion-grid>
                     <ion-row>
-                      <ion-col size="4" class="ion-text-center">
+                      <ion-col size="3" class="ion-text-center">
                         
-                          <ion-label position="stacked">Kp</ion-label>
-                          <input
-                            [(ngModel)]="Kp"
-                            type="number"
-                            placeholder="Kp"
-                            (change)="updatePID()"
-                          />
+                         
+                            <input
+                              [(ngModel)]="Kp"
+                              type="number"
+                              placeholder="Kp"
+                              (change)="updatePID()"
+                            />
+                          
                         
                       </ion-col>
                   
-                      <ion-col size="4" class="ion-text-center">
+                      <ion-col size="3" class="ion-text-center">
                         
-                          <ion-label position="stacked">Ki</ion-label>
+                          
+                       
                           <input
                             [(ngModel)]="Ki"
                             type="number"
@@ -77,17 +79,33 @@
                             (change)="updatePID()"
                           />
                         
+                        
                       </ion-col>
                   
-                      <ion-col size="4" class="ion-text-center">
+                      <ion-col size="3" class="ion-text-center">
                         
-                          <ion-label position="stacked">Kd</ion-label>
+                          
+                       
                           <input
                             [(ngModel)]="Kd"
                             type="number"
                             placeholder="Kd"
                             (change)="updatePID()"
                           />
+                        
+                        
+                      </ion-col>
+                      <ion-col size="3" class="ion-text-center">
+                        
+                          
+                       
+                          <input
+                            [(ngModel)]="incrementDegree"
+                            type="number"
+                            placeholder="incrementDegree"
+                            (change)="updateIncrementDegree()"
+                          />
+                        
                         
                       </ion-col>
                     </ion-row>

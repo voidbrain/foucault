@@ -36,11 +36,15 @@ const topics = {
     walkBackward: "pid/move/backward",
     walkLeft: "pid/move/left",
     walkRight: "pid/move/right",
+    setHeightLow: "pid/set/height/low",
+    setHeightMid: "pid/set/height/mid",
+    setHeightHigh: "pid/set/height/high",
     enableSensorAdjustementsTrue: "pid/sensor/enable/true",
     enableSensorAdjustementsFalse: "pid/sensor/enable/false",
     setKp: "pid/set/Kp",
     setKi: "pid/set/Ki",
     setKd: "pid/set/Kd",
+    setIncrementDegree: "pid/set/increment",
   },
 };
 
