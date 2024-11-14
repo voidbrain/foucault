@@ -25,6 +25,16 @@ const ACCEL_XOUT_H = 0x3b;
 // Flag for sensor adjustments
 let sensorAdjustmentsEnabled = true;
 
+// Define pulse width ranges for height levels
+const heightLevels = {
+  low: { basePulseWidth: 500 },
+  mid: { basePulseWidth: 1500 },
+  high: { basePulseWidth: 2500 },
+};
+
+// Current height setting, default to 'mid'
+let currentHeight = "mid";
+
 // MQTT topics
 const topics = {
   output: {
@@ -78,19 +88,64 @@ mqttClient.on("message", (topic) => {
         handleStop();
         break;
       case topics.input.setHeightLow:
+        handleSetHeight('low');
         break;
       case topics.input.setHeightMid:
+        handleSetHeight('mid');
         break;
       case topics.input.setHeightHigh:
+        handleSetHeight('high');
         break;
       case topics.input.enableSensorAdjustementsTrue:
-        sensorAdjustmentsEnabled = true;
+        handleSetSensorAdj(true)
         break;
       case topics.input.enableSensorAdjustementsFalse:
-        sensorAdjustmentsEnabled = false;
+        handleSetSensorAdj(true)
         break;
     }
 });
+
+function handleSetSensorAdj(value){
+  sensorAdjustmentsEnabled = value;
+
+}
+// function adjustServos(xAngle) {
+//   // Base pulse width for the current height level
+//   const basePulseWidth = heightLevels[currentHeight].basePulseWidth;
+
+//   // Calculate height difference from the tilt angle
+//   const heightDifference = xAngle * 0.1;
+  
+//   // Adjust left and right pulse widths
+//   const leftPulseWidth = Math.max(
+//     500,
+//     Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
+//   );
+//   const rightPulseWidth = Math.max(
+//     500,
+//     Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
+//   );
+
+//   // Publish servo pulse width values via MQTT
+//   sendMQTTMessage(topics.output.servoLeft, {
+//     source: "pid",
+//     value: leftPulseWidth,
+//   });
+//   sendMQTTMessage(topics.output.servoRight, {
+//     source: "pid",
+//     value: rightPulseWidth,
+//   });
+// }
+
+// Modify the handleSetHeight function to update the current height setting
+function handleSetHeight(height) {
+  if (heightLevels[height]) {
+    currentHeight = height;
+    console.log(`Height set to ${height}`);
+  } else {
+    console.warn(`Unknown height level: ${height}`);
+  }
+}
 
 function handleStop() {
   pidControl(setpoint, previousErrorLeft, integralLeft, true);
@@ -234,17 +289,44 @@ function updateMotors(leftOutput, rightOutput) {
 }
 
 // Adjust servos based on height difference calculation
+// function adjustServos(xAngle) {
+//   const heightDifference = xAngle * 0.1;
+//   const leftPulseWidth = Math.max(
+//     500,
+//     Math.min(2500, Math.round(500 + heightDifference * 2000))
+//   );
+//   const rightPulseWidth = Math.max(
+//     500,
+//     Math.min(2500, Math.round(500 + -heightDifference * 2000))
+//   );
+
+//   sendMQTTMessage(topics.output.servoLeft, {
+//     source: "pid",
+//     value: leftPulseWidth,
+//   });
+//   sendMQTTMessage(topics.output.servoRight, {
+//     source: "pid",
+//     value: rightPulseWidth,
+//   });
+// }
 function adjustServos(xAngle) {
+  // Base pulse width for the current height level
+  const basePulseWidth = heightLevels[currentHeight].basePulseWidth;
+
+  // Calculate height difference from the tilt angle
   const heightDifference = xAngle * 0.1;
+  
+  // Adjust left and right pulse widths
   const leftPulseWidth = Math.max(
     500,
-    Math.min(2500, Math.round(500 + heightDifference * 2000))
+    Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
   );
   const rightPulseWidth = Math.max(
     500,
-    Math.min(2500, Math.round(500 + -heightDifference * 2000))
+    Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
   );
 
+  // Publish servo pulse width values via MQTT
   sendMQTTMessage(topics.output.servoLeft, {
     source: "pid",
     value: leftPulseWidth,
