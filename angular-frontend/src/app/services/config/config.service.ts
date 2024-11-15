@@ -19,15 +19,4 @@ export class ConfigService {
       throw error;
     }
   }
-
-  // Update PID config on the server
-  async updateConfig(config: any): Promise<any> {
-    try {
-      const response = await axios.post(this.updateConfigUrl, config);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating config:', error);
-      throw error;
-    }
-  }
 }

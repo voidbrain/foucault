@@ -11,7 +11,8 @@
     "mpu6050": "^0.1.4",
     "i2c-bus": "^5.2.3",
     "coffee-script": "^1.12.7",
-    "mqtt": "^5.10.1"
+    "mqtt": "^5.10.1",
+    "axios": "1.7.7"
   },
   "author": "Your Name",
   "license": "MIT"

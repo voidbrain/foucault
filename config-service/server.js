@@ -35,6 +35,11 @@ const topics = {
     setKi: "pid/set/Ki",
     setKd: "pid/set/Kd",
     setIncrementDegree: "pid/set/increment",
+    setHeightLow: "pid/set/height/low",
+    setHeightMid: "pid/set/height/mid",
+    setHeightHigh: "pid/set/height/high",
+    enableSensorAdjustementsTrue: "pid/sensor/enable/true",
+    enableSensorAdjustementsFalse: "pid/sensor/enable/false",
   },
 };
 
@@ -69,6 +74,27 @@ mqttClient.on('message', (topic, message) => {
     case topics.input.setIncrementDegree:
       param = 'incrementDegree';
       break;
+     
+    case topics.input.setHeightLow:
+      param = 'heightLevel';
+      message = 'LOW'
+      break;
+    case topics.input.setHeightMid:
+      param = 'heightLevel';
+      message = 'MID'
+      break;
+    case topics.input.setHeightHigh:
+      param = 'heightLevel';
+      message = 'HIGH'
+      break;
+    case topics.input.enableSensorAdjustementsTrue:
+      param = 'heightLevel';
+      message = true;
+      break;
+    case topics.input.enableSensorAdjustementsFalse:
+      param = 'heightLevel';
+      message = false;
+      break;
   }
 
   const value = parseFloat(message.toString());
@@ -89,55 +115,6 @@ const saveConfig = () => {
 // Endpoint to get the current config
 app.get('/config', (req, res) => {
   res.json(config);
-});
-
-app.post('/config/kp', (req, res) => {
-  const value = req.body;
-  if (value !== undefined) {
-    mqttClient.publish(topics.input.setKp, value.toString());
-  }
-  saveConfig();
-  res.json({ message: 'Config updated successfully', config });
-});
-app.post('/config/ki', (req, res) => {
-  const value = req.body;
-  if (value !== undefined) {
-    mqttClient.publish(topics.input.setKi, value.toString());
-  }
-  saveConfig();
-  res.json({ message: 'Config updated successfully', config });
-});
-app.post('/config/kd', (req, res) => {
-  const value = req.body;
-  if (value !== undefined) {
-    mqttClient.publish(topics.input.setKd, value.toString());
-  }
-  saveConfig();
-  res.json({ message: 'Config updated successfully', config });
-});
-app.post('/config/incrementdegree', (req, res) => {
-  const value = req.body;
-  if (value !== undefined) {
-    mqttClient.publish(topics.input.setIncrementDegree, value.toString());
-  }
-  saveConfig();
-  res.json({ message: 'Config updated successfully', config });
-});
-app.post('/config/heightLevel', (req, res) => {
-  const value = req.body;
-  if (value !== undefined) {
-    mqttClient.publish(topics.input.setHeightLevel, value.toString());
-  }
-  saveConfig();
-  res.json({ message: 'Config updated successfully', config });
-});
-app.post('/config/issensoradjustmentenabled', (req, res) => {
-  const value = req.body;
-  if (value !== undefined) {
-    mqttClient.publish(topics.input.setIsSensorAdjustmentEnabled, value.toString());
-  }
-  saveConfig();
-  res.json({ message: 'Config updated successfully', config });
 });
 
 const PORT = 3004;

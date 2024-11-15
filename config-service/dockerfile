@@ -15,7 +15,7 @@ COPY . .
 
 # Ensure the config directory exists and copy config.json to it
 RUN mkdir -p /usr/src/app/shared-config
-COPY config.json /usr/src/app/shared-config/config.json
+COPY /shared-config/config.json /usr/src/app/shared-config/config.json
 
 # Expose port 3004
 EXPOSE 3004

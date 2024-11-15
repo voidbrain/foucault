@@ -65,13 +65,13 @@ export class ExploreContainerComponent implements AfterViewInit {
   socket: Socket | null = null;
   socketStatus: string = 'Connecting...';
 
-  Kp = 1.2; // Proportional gain
-  Ki = 0.0; // Integral gain
-  Kd = 0.4; // Derivative gain
-  incrementDegree = 1; // Default increment for movement adjustments
-  heightLevel: number = 2;
-  isSensorAdjustmentEnabled: boolean = true;
-  
+  Kp = 0; // Proportional gain
+  Ki = 0; // Integral gain
+  Kd = 0; // Derivative gain
+  incrementDegree = 0; // Default increment for movement adjustments
+  heightLevel: number = 0;
+  isSensorAdjustmentEnabled: boolean = false
+
   isConsoleAutoScrollEnabled: boolean = true;
   consoleMessages: string[] = [];
 
@@ -110,15 +110,16 @@ export class ExploreContainerComponent implements AfterViewInit {
       walkLeft: "pid/move/left",
       walkRight: "pid/move/right",
       stop: "pid/stop",
-      // setHeightLow: "pid/set/height/low",
-      // setHeightMid: "pid/set/height/mid",
-      // setHeightHigh: "pid/set/height/high",
+      setHeightLow: "pid/set/height/low",
+      setHeightMid: "pid/set/height/mid",
+      setHeightHigh: "pid/set/height/high",
+
       enableSensorAdjustementsTrue: "pid/sensor/enable/true",
       enableSensorAdjustementsFalse: "pid/sensor/enable/false",
-      // setKp: "pid/set/Kp",
-      // setKi: "pid/set/Ki",
-      // setKd: "pid/set/Kd",
-      // setincrementDegree: "pid/set/increment",
+      setKp: "pid/set/Kp",
+      setKi: "pid/set/Ki",
+      setKd: "pid/set/Kd",
+      setincrementDegree: "pid/set/increment",
     }
   };
 
@@ -150,11 +151,13 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   constructor(
     private socketService: SocketService,
-    private cdr: ChangeDetectorRef, 
+    private cdr: ChangeDetectorRef,
     private configService: ConfigService
   ) {}
 
-  ngAfterViewInit(): void {
+  async ngAfterViewInit() {
+    await this.getConfig();
+
     this.setupThreeJS();
     this.animateTHREERobot();
     this.setupSocket();
@@ -189,8 +192,22 @@ export class ExploreContainerComponent implements AfterViewInit {
   });
   }
 
+  async getConfig(){
+    const config = await this.configService.getConfig();
+
+    if(config.Kp){ this.Kp = config.Kp }
+    if(config.Kp){ this.Ki = config.Ki }
+    if(config.Kp){ this.Kd = config.Kd }
+    if(config.Kp){ this.Ki = config.Ki }
+    if(config.Kp){ this.Ki = config.Ki }
+    if(config.Kp){ this.Ki = config.Ki }
+    if(config.incrementDegree){ this.incrementDegree = config.incrementDegree }
+    if(config.heightLevel){ this.heightLevel = config.heightLevel }
+    if(config.isSensorAdjustmentEnabled){ this.isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled }
+  }
+
   adjustHeightEventFromSlider(event: CustomEvent) {
-    // 
+    //
     this.sendSetHeightCommand(this.heights[event.detail.value - 1]);
   }
 
@@ -458,7 +475,7 @@ export class ExploreContainerComponent implements AfterViewInit {
       if(data) {
         parsedMessage = JSON.parse(data);
       }
-      
+
 
       switch (topic) {
         case this.topics.input.accelData:

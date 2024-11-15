@@ -1,5 +1,6 @@
 const i2c = require("i2c");
 const mqtt = require("mqtt");
+const axios = require('axios');
 
 // MPU6050 and I2C setup
 const address = 0x68; // MPU6050 default I2C address
@@ -14,6 +15,7 @@ let previousErrorLeft = 0;
 let previousErrorRight = 0;
 let integralLeft = 0;
 let integralRight = 0;
+
 let setpoint = 0; // Desired balance angle (0 for upright)
 let incrementDegree = 0; // Default increment for movement adjustments
 
@@ -32,7 +34,7 @@ const heightLevels = {
 };
 
 // Current height setting, default to 'mid'
-let currentHeight = "mid";
+let heightLevel = "mid";
 
 // MQTT topics
 const topics = {
@@ -120,6 +122,43 @@ mqttClient.on("message", (topic, value) => {
     }
 });
 
+async function fetchConfig() {
+  try {
+    console.log('Fetching configuration...');
+    const response = await axios.get('http://configuration-service:3004/config'); // Replace with actual service URL
+    const config = response.data;
+
+    console.log('Configuration fetched successfully:', config);
+
+    // Use the config for initialization
+    initializePID(config);
+
+  } catch (error) {
+    console.error('Error fetching configuration:', error.message);
+    process.exit(1); // Exit if configuration cannot be fetched
+  }
+}
+
+function initializePID(config) {
+  console.log('Initializing PID controller with config:', config);
+
+  if(config.Kp){ Kp = config.Kp }
+  if(config.Kp){ Ki = config.Ki }
+  if(config.Kp){ Kd = config.Kd }
+  if(config.Kp){ Ki = config.Ki }
+  if(config.Kp){ Ki = config.Ki }
+  if(config.Kp){ Ki = config.Ki }
+  if(config.incrementDegree){ incrementDegree = config.incrementDegree }
+  if(config.heightLevel){ heightLevel = config.heightLevel }
+  if(config.isSensorAdjustmentEnabled){ isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled }
+}
+
+// Fetch config and start the application
+fetchConfig().then(() => {
+  console.log('PID Controller started');
+});
+
+
 function handleSetIncrementDegree(value) {
   if (!isNaN(value)) {
     incrementDegree = value;
@@ -164,8 +203,8 @@ function handleSetSensorAdj(value){
 
 // Modify the handleSetHeight function to update the current height setting
 function handleSetHeight(height) {
-  if (heightLevels[height]) {
-    currentHeight = height;
+  if (heightLevels[heightLevel]) {
+    heightLevel = height;
     console.log(`Height set to ${height}`);
   } else {
     console.warn(`Unknown height level: ${height}`);
@@ -317,7 +356,7 @@ function updateMotors(leftOutput, rightOutput) {
 
 function adjustServos(xAngle) {
   // Base pulse width for the current height level
-  const basePulseWidth = heightLevels[currentHeight].basePulseWidth;
+  const basePulseWidth = heightLevels[heightLevel].basePulseWidth;
 
   // Calculate height difference from the tilt angle
   const heightDifference = xAngle * 0.1;
