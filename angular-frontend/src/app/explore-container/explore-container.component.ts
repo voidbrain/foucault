@@ -82,14 +82,15 @@ export class ExploreContainerComponent implements AfterViewInit {
   incrementDegree = 0; // Default increment for movement adjustments
   heightLevels: string[] = ['low', 'mid', 'high'];
   heightLevel: string = this.heightLevels[1];
+  degree = 0;
 
   accelData = { accelX: 0 , accelY:0, accelZ:0 }
   tiltAngles = { xAngle:0, yAngle:0 }
 
-  leftMotorPWM: null | number = null;
-  rightMotorPWM: null | number = null;
-  leftServoPulse: null | number = null;
-  rightServoPulse: null | number = null;
+  leftMotorPWM:  null | { value:number} = null;
+  rightMotorPWM:  null | { value:number} = null;
+  leftServoPulse:  null | { value:number} = null;
+  rightServoPulse:  null | { value:number} = null;
 
   THREESettings = {
     HEIGHT_LOW: 1,
@@ -224,15 +225,24 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   onHeightChanged(newHeightIndex: number) {
+    console.log(newHeightIndex, this.heightLevels[newHeightIndex])
     const newHeightIndexNumber: number = newHeightIndex;
     this.heightLevelIndex = newHeightIndexNumber;
     console.log('Height Level Changed:', this.heightLevels[this.heightLevelIndex]);
+    this.sendSetHeightCommand(this.heightLevels[this.heightLevelIndex]);
   }
 
   onSensorToggled(isEnabled: boolean) {
     const isEnabledBoolean: boolean = isEnabled;
     this.isSensorAdjustmentEnabled = isEnabledBoolean;
     console.log('Sensor Adjustments Enabled:', this.isSensorAdjustmentEnabled);
+
+    if(isEnabled === true) {
+      this.sendEnableSensorCommand(this.topics.output.enableSensorAdjustementsTrue);
+    } else {
+      this.sendEnableSensorCommand(this.topics.output.enableSensorAdjustementsFalse);
+    }
+    
   }
 
   onStopCommand() {
@@ -244,11 +254,8 @@ export class ExploreContainerComponent implements AfterViewInit {
     const config = await this.configService.getConfig();
 
     if(config.Kp){ this.Kp = config.Kp }
-    if(config.Kp){ this.Ki = config.Ki }
-    if(config.Kp){ this.Kd = config.Kd }
-    if(config.Kp){ this.Ki = config.Ki }
-    if(config.Kp){ this.Ki = config.Ki }
-    if(config.Kp){ this.Ki = config.Ki }
+    if(config.Ki){ this.Ki = config.Ki }
+    if(config.Kd){ this.Kd = config.Kd }
     if(config.incrementDegree){ this.incrementDegree = config.incrementDegree }
     if(config.heightLevel){ this.heightLevel = config.heightLevel }
     if(config.isSensorAdjustmentEnabled){ this.isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled }
@@ -304,9 +311,10 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
   }
 
-  updateIncrementDegree(){
+  updateIncrementDegree(incrementDegree: number){
+    this.incrementDegree = incrementDegree;
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output.setincrementDegree, value: this.incrementDegree.toString(), souce: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output.setincrementDegree, value: incrementDegree.toString(), souce: 'Angular FE' });
     }
   }
 
@@ -705,24 +713,8 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   sendControlCommand(command: string) {
     if (this.socket !== null) {
-      let walk: string = '';
-      switch (command) {
-        case 'forward':
-          walk = this.topics.output.walkForward;
-          break;
-        case 'backward':
-          walk = this.topics.output.walkBackward;
-          break;
-        case 'left':
-          walk = this.topics.output.walkLeft;
-          break;
-        case 'right':
-          walk = this.topics.output.walkRight;
-          break;
-        default:
-          break;
-      }
-      this.socket.emit('message', { topic: walk, souce: 'Angular FE' });
+      
+      this.socket.emit('message', { topic: command, souce: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }
@@ -731,13 +723,13 @@ export class ExploreContainerComponent implements AfterViewInit {
   sendSetHeightCommand(height: string) {
     if (this.socket !== null) {
       switch(height) {
-        case 'HEIGHT_LOW':
+        case 'low':
           this.socket.emit('message', { topic: this.topics.output.setHeightLow, souce: 'Angular FE' });
           break;
-        case 'HEIGHT_MID':
+        case 'mid':
           this.socket.emit('message', { topic: this.topics.output.setHeightMid, souce: 'Angular FE' });
           break;
-        case 'HEIGHT_HIGH':
+        case 'high':
           this.socket.emit('message', { topic: this.topics.output.setHeightHigh, souce: 'Angular FE' });
           break;
 
@@ -757,22 +749,22 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
   }
 
-  toggleEnableSensor() {
-    if (this.socket !== null) {
-      this.isSensorAdjustmentEnabled = !this.isSensorAdjustmentEnabled;
-      switch (this.isSensorAdjustmentEnabled) {
-        case true:
-          this.sendEnableSensorCommand(this.topics.output.enableSensorAdjustementsTrue);
-          break;
-        case false:
-          this.sendEnableSensorCommand(this.topics.output.enableSensorAdjustementsFalse);
-          break;
-      }
+  // toggleEnableSensor() {
+  //   if (this.socket !== null) {
+  //     this.isSensorAdjustmentEnabled = !this.isSensorAdjustmentEnabled;
+  //     switch (this.isSensorAdjustmentEnabled) {
+  //       case true:
+  //         this.sendEnableSensorCommand(this.topics.output.enableSensorAdjustementsTrue);
+  //         break;
+  //       case false:
+  //         this.sendEnableSensorCommand(this.topics.output.enableSensorAdjustementsFalse);
+  //         break;
+  //     }
 
-    } else {
-      console.warn('Socket is null');
-    }
-  }
+  //   } else {
+  //     console.warn('Socket is null');
+  //   }
+  // }
 
   sendEnableSensorCommand(topic: string) {
     if (this.socket !== null) {

@@ -18,12 +18,18 @@
 
       <ion-col size="6">
         <app-control
+          [Kp]="Kp"
+          [Ki]="Ki"
+          [Kd]="Kd"
+          [incrementDegree]="incrementDegree"
           [heights]="heightLevels"
           [heightLevelIndex]="heightLevelIndex"
           [isSensorAdjustmentEnabled]="isSensorAdjustmentEnabled"
           (heightChanged)="onHeightChanged(heightLevelIndex)"
-          (sensorToggled)="onSensorToggled(isSensorAdjustmentEnabled)"
+          (sensorToggled)="onSensorToggled($event)"
+          (degreeChanged)="updateIncrementDegree($event)"
           (stopCommand)="onStopCommand()"
+          (controlCommand)="sendControlCommand($event)"
         ></app-control>
         <!-- <ion-card>
           <ion-card-header>

@@ -41,7 +41,7 @@ import {
                 <ng-container *ngIf="accelData; else loadingAccel">
                   X: {{ accelData.accelX }} m/s<sup>2</sup> <br />
                   Y: {{ accelData.accelY }} m/s<sup>2</sup> <br />
-                  Z: {{ accelData.accelZ }} m/s<sup>2</sup>
+                  Z: {{ accelData.accelZ }} m/s<sup>2</sup>{{ accelData | json }}
                 </ng-container>
                 <ng-template #loadingAccel>Loading...</ng-template>
               </ion-text>
