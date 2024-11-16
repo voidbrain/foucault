@@ -244,7 +244,7 @@ export class ControlComponent {
     const newValue = event.detail.value;
     this.heightLevelIndex = newValue;
 
-    console.log("heightChanged 1")
+    console.log("adjustHeightEventFromSlider", this.heightLevelIndex)
     this.heightChanged.emit(this.heightLevelIndex);
   }
 

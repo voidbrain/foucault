@@ -25,7 +25,7 @@
           [heights]="heightLevels"
           [heightLevelIndex]="heightLevelIndex"
           [isSensorAdjustmentEnabled]="isSensorAdjustmentEnabled"
-          (heightChanged)="onHeightChanged(heightLevelIndex)"
+          (heightChanged)="onHeightChanged($event)"
           (sensorToggled)="onSensorToggled($event)"
           (degreeChanged)="updateIncrementDegree($event)"
           (stopCommand)="onStopCommand()"
