@@ -30,8 +30,11 @@ import {
   IonCardSubtitle,
   IonItem
 } from '@ionic/angular/standalone';
-import { SocketService } from '../services/send-mqtt/send-mqtt.service';
 import * as THREE from 'three';
+import { ControlComponent } from '../components/control/control.component';
+import { ConsoleComponent } from '../components/console/console.component';
+import { RawDataComponent } from '../components/raw-data/raw-data.component';
+import { MotorOutputComponent } from '../components/motor-output/motor-output.component';
 
 @Component({
   standalone: true,
@@ -39,6 +42,10 @@ import * as THREE from 'three';
   templateUrl: './explore-container.component.html',
   styleUrls: ['./explore-container.component.scss'],
   imports: [
+    ControlComponent,
+    ConsoleComponent,
+    RawDataComponent,
+    MotorOutputComponent,
     IonContent,
     IonHeader,
     IonTitle,
@@ -62,6 +69,10 @@ import * as THREE from 'three';
   ],
 })
 export class ExploreContainerComponent implements AfterViewInit {
+  @ViewChild(ConsoleComponent) consoleComponent: ConsoleComponent | undefined;
+  isConsoleAutoScrollEnabled: boolean = true;
+  private messageIndex = 0;
+
   socket: Socket | null = null;
   socketStatus: string = 'Connecting...';
 
@@ -69,11 +80,34 @@ export class ExploreContainerComponent implements AfterViewInit {
   Ki = 0; // Integral gain
   Kd = 0; // Derivative gain
   incrementDegree = 0; // Default increment for movement adjustments
-  heightLevel: number = 0;
+  heightLevels: string[] = ['low', 'mid', 'high'];
+  heightLevel: string = this.heightLevels[1];
+
+  accelData = { accelX: 0 , accelY:0, accelZ:0 }
+  tiltAngles = { xAngle:0, yAngle:0 }
+
+  leftMotorPWM: null | number = null;
+  rightMotorPWM: null | number = null;
+  leftServoPulse: null | number = null;
+  rightServoPulse: null | number = null;
+
+  THREESettings = {
+    HEIGHT_LOW: 1,
+    HEIGHT_MID: 2,
+    HEIGHT_HIGH: 3,
+  
+    BODY_LOW: 0.4,
+    BODY_HEIGHT_MID: 1,
+    BODY_HEIGHT_HIGH: 1.2,
+  
+    LEG_LOW: 0,
+    LEG_HEIGHT_MID: 1,
+    LEG_HEIGHT_HIGH: 2,
+  }
+
   isSensorAdjustmentEnabled: boolean = false
 
-  isConsoleAutoScrollEnabled: boolean = true;
-  consoleMessages: string[] = [];
+  
 
   walkForwardActive = false;
   walkBackwardActive = false;
@@ -132,28 +166,25 @@ export class ExploreContainerComponent implements AfterViewInit {
   leftLeg!: THREE.Group;
   rightLeg!: THREE.Group;
 
-  HEIGHT_LOW = 1;
-  HEIGHT_MID = 2;
-  HEIGHT_HIGH = 3;
-
-  BODY_HEIGHT_LOW = 0.4;
-  BODY_HEIGHT_MID = 1;
-  BODY_HEIGHT_HIGH = 1.2;
-
-  LEG_HEIGHT_LOW = 0;
-  LEG_HEIGHT_MID = 1;
-  LEG_HEIGHT_HIGH = 2;
-
-  heights = ['HEIGHT_LOW', 'HEIGHT_MID', 'HEIGHT_HIGH'];
-
   @ViewChild('threejsContainer', { static: true })
   threejsContainer!: ElementRef<HTMLDivElement>;
 
   constructor(
-    private socketService: SocketService,
+    // private socketService: SocketService,
     private cdr: ChangeDetectorRef,
     private configService: ConfigService
   ) {}
+
+  get heightLevelIndex(): number {
+    return this.heightLevels.findIndex(level => level === this.heightLevel);
+  }
+
+  set heightLevelIndex(index: number) {
+    // Sets the heightLevel based on the provided index
+    if (index >= 0 && index < this.heightLevels.length) {
+      this.heightLevel = this.heightLevels[index];
+    }
+  }
 
   async ngAfterViewInit() {
     await this.getConfig();
@@ -161,7 +192,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.setupThreeJS();
     this.animateTHREERobot();
     this.setupSocket();
-    this.adjustTHREERobotHeight('HEIGHT_MID');
+    this.adjustTHREERobotHeight('mid');
 
     document.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
@@ -192,6 +223,23 @@ export class ExploreContainerComponent implements AfterViewInit {
   });
   }
 
+  onHeightChanged(newHeightIndex: number) {
+    const newHeightIndexNumber: number = newHeightIndex;
+    this.heightLevelIndex = newHeightIndexNumber;
+    console.log('Height Level Changed:', this.heightLevels[this.heightLevelIndex]);
+  }
+
+  onSensorToggled(isEnabled: boolean) {
+    const isEnabledBoolean: boolean = isEnabled;
+    this.isSensorAdjustmentEnabled = isEnabledBoolean;
+    console.log('Sensor Adjustments Enabled:', this.isSensorAdjustmentEnabled);
+  }
+
+  onStopCommand() {
+    console.log('Stop command received!');
+    this.sendStopCommand();
+  }
+
   async getConfig(){
     const config = await this.configService.getConfig();
 
@@ -206,29 +254,31 @@ export class ExploreContainerComponent implements AfterViewInit {
     if(config.isSensorAdjustmentEnabled){ this.isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled }
   }
 
-  adjustHeightEventFromSlider(event: CustomEvent) {
-    //
-    this.sendSetHeightCommand(this.heights[event.detail.value - 1]);
-  }
+  // adjustHeightEventFromSlider(event: CustomEvent) {
+  //   const selectedLevel = this.heightLevels[event.detail.value];
+  //   this.heightLevel = selectedLevel;
+  //   console.log(this.heightLevel);
+  //   this.sendSetHeightCommand(this.heightLevel);
+  // }
 
   adjustTHREERobotHeight(height: string) {
-    let targetHeight = this.HEIGHT_MID;
+    let targetHeight = this.THREESettings.HEIGHT_MID;
     let offsetHeight;
     switch (height) {
-      case 'HEIGHT_LOW':
-        targetHeight = this.HEIGHT_LOW;
+      case 'low':
+        targetHeight = this.THREESettings.HEIGHT_LOW;
         offsetHeight = -0.8;
-        this.updateTHREERobotBody(this.HEIGHT_LOW, offsetHeight);
+        this.updateTHREERobotBody(this.THREESettings.HEIGHT_LOW, offsetHeight);
         break;
-      case 'HEIGHT_MID':
-        targetHeight = this.HEIGHT_MID;
+      case 'mid':
+        targetHeight = this.THREESettings.HEIGHT_MID;
         offsetHeight = 0;
-        this.updateTHREERobotBody(this.BODY_HEIGHT_MID, offsetHeight);
+        this.updateTHREERobotBody(this.THREESettings.BODY_HEIGHT_MID, offsetHeight);
         break;
-      case 'HEIGHT_HIGH':
-        targetHeight = this.HEIGHT_HIGH;
+      case 'high':
+        targetHeight = this.THREESettings.HEIGHT_HIGH;
         offsetHeight = +0.2;
-        this.updateTHREERobotBody(this.BODY_HEIGHT_HIGH, offsetHeight);
+        this.updateTHREERobotBody(this.THREESettings.BODY_HEIGHT_HIGH, offsetHeight);
         break;
     }
 
@@ -324,21 +374,21 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   updateTHREERobotLegServos(leg: THREE.Group, height: number) {
-    const servo = leg.children.find(
+    const THREEServo = leg.children.find(
       (child) =>
         child instanceof THREE.Mesh &&
         child.geometry.type === 'CylinderGeometry'
     );
-    if (servo) {
+    if (THREEServo) {
       switch (height) {
-        case this.HEIGHT_HIGH:
-          servo.position.y = 1.4;
+        case this.THREESettings.HEIGHT_HIGH:
+          THREEServo.position.y = 1.4;
           break;
-        case this.HEIGHT_MID:
-          servo.position.y = 1.2;
+        case this.THREESettings.HEIGHT_MID:
+          THREEServo.position.y = 1.2;
           break;
-        case this.HEIGHT_LOW:
-          servo.position.y = 0.5;
+        case this.THREESettings.HEIGHT_LOW:
+          THREEServo.position.y = 0.5;
           break;
       }
     }
@@ -459,7 +509,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
   setupSocket() {
     if (this.socket === null) {
-      this.socket = io('http://foucault:8080'); // Make sure this URL is correct
+      this.socket = io('http://foucault.local:8080'); // Make sure this URL is correct
     }
 
     this.socket.on('connect', () => {
@@ -487,19 +537,23 @@ export class ExploreContainerComponent implements AfterViewInit {
           break;
 
         case this.topics.input.motorLeft:
-          this.handleMotorPWM('left', parsedMessage as { value: number});
+          // this.handleMotorPWM('left', parsedMessage as { value: number});
+          this.leftMotorPWM = parsedMessage
           break;
 
         case this.topics.input.motorRight:
-          this.handleMotorPWM('right', parsedMessage as { value: number});
+          // this.handleMotorPWM('right', parsedMessage as { value: number});
+          this.rightMotorPWM = parsedMessage
           break;
 
         case this.topics.input.servoLeft:
-          this.handleServoPulseWidth('left', parsedMessage as { value: number});
+          // this.handleServoPulseWidth('left', parsedMessage as { value: number});
+          this.leftServoPulse = parsedMessage;
           break;
 
         case this.topics.input.servoRight:
-          this.handleServoPulseWidth('right', parsedMessage as { value: number});
+          // this.handleServoPulseWidth('right', parsedMessage as { value: number});
+          this.rightServoPulse = parsedMessage;
           break;
 
         case this.topics.input.console:
@@ -520,13 +574,13 @@ export class ExploreContainerComponent implements AfterViewInit {
           this.walkRightActive = true;
           break;
         case this.topics.input.setHeightLow :
-          this.adjustTHREERobotHeight(this.heights[0]);
+          this.adjustTHREERobotHeight(this.heightLevels[0]);
         break;
         case this.topics.input.setHeightMid :
-          this.adjustTHREERobotHeight(this.heights[1]);
+          this.adjustTHREERobotHeight(this.heightLevels[1]);
         break;
         case this.topics.input.setHeightHigh:
-          this.adjustTHREERobotHeight(this.heights[2]);
+          this.adjustTHREERobotHeight(this.heightLevels[2]);
         break;
         case this.topics.input.enableSensorAdjustementsTrue:
           this.isSensorAdjustmentEnabled = true;
@@ -555,11 +609,13 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   handleAccelData(data: { accelX: number; accelY: number; accelZ: number }) {
-    this.updateConsoleAccelData(data);
+    // this.updateConsoleAccelData(data);
+    this.accelData = data;
   }
 
   handleTiltAngles(data: { xAngle: number; yAngle: number }) {
-    this.updateConsoleTiltAngles(data);
+    // this.updateConsoleTiltAngles(data);
+    this.tiltAngles = data;
     this.updateTHREERobotTilt(data);
   }
 
@@ -568,21 +624,21 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.logToConsole(`topic: ${topic}, message:${m}`);
   }
 
-  handleMotorPWM(wheel: string, data: { value: number }) {
-    const value = data;
+  // handleMotorPWM(wheel: string, data: { value: number }) {
+  //   const value = data;
 
-    // Update the motor PWM for the specified wheel
-    this.updateTHREERobotMotorPWM(wheel, value);
+  //   // Update the motor PWM for the specified wheel
+  //   this.updateTHREERobotMotorPWM(wheel, value);
 
-    // Selectively update the left or right motor value in the HTML
-    const motorValueElement = document.getElementById(`${wheel}-motor-value`);
-    if (motorValueElement) {
+  //   // Selectively update the left or right motor value in the HTML
+  //   const motorValueElement = document.getElementById(`${wheel}-motor-value`);
+  //   if (motorValueElement) {
 
-      motorValueElement.innerText = `${value.value}`;
-    }
+  //     motorValueElement.innerText = `${value.value}`;
+  //   }
 
-    this.cdr.detectChanges();
-  }
+  //   this.cdr.detectChanges();
+  // }
 
   handleServoPulseWidth(servo: string, data: any) {
     if (servo === 'left' && this.rightLeg) {
@@ -627,14 +683,14 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
   }
 
-  updateConsoleAccelData(data:any) {
-    if(data){
-      document.getElementById(
-        'accelData-content'
-      )!.innerHTML = `X: ${data?.accelData.accelX}°<br /> Y: ${data?.accelData.accelY}°<br /> Z: ${data?.accelData.accelZ}°`;
-      this.cdr.detectChanges();
-    }
-  }
+  // updateConsoleAccelData(data:any) {
+  //   if(data){
+  //     document.getElementById(
+  //       'accelData-content'
+  //     )!.innerHTML = `X: ${data?.accelData.accelX}°<br /> Y: ${data?.accelData.accelY}°<br /> Z: ${data?.accelData.accelZ}°`;
+  //     this.cdr.detectChanges();
+  //   }
+  // }
 
   updateTHREERobotWheelMovement(data: { leftHeight: number; rightHeight: number }) {
     this.leftLeg.position.y = data.leftHeight;
@@ -727,10 +783,18 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   logToConsole(message: string) {
-    const consoleContent = document.getElementById('console-content')!;
-    consoleContent.innerHTML += `<p>${message}</p>`;
-    if (this.isConsoleAutoScrollEnabled) {
-      consoleContent.scrollTop = consoleContent.scrollHeight;
+    // const consoleContent = document.getElementById('console-content')!;
+    // consoleContent.innerHTML += `<p>${message}</p>`;
+    // if (this.isConsoleAutoScrollEnabled) {
+    //   consoleContent.scrollTop = consoleContent.scrollHeight;
+    // }
+    if (this.consoleComponent) {
+      const topic = `topic${++this.messageIndex}`;
+      const message = `Message ${this.messageIndex}`;
+      const source = `Source`;
+
+      // Pass the message to the child component
+      this.consoleComponent.handleConsoleMessage(topic, message, source);
     }
   }
 

@@ -17,7 +17,15 @@
       </ion-col>
 
       <ion-col size="6">
-        <ion-card>
+        <app-control
+          [heights]="heightLevels"
+          [heightLevelIndex]="heightLevelIndex"
+          [isSensorAdjustmentEnabled]="isSensorAdjustmentEnabled"
+          (heightChanged)="onHeightChanged(heightLevelIndex)"
+          (sensorToggled)="onSensorToggled(isSensorAdjustmentEnabled)"
+          (stopCommand)="onStopCommand()"
+        ></app-control>
+        <!-- <ion-card>
           <ion-card-header>
             <ion-card-title>Controls</ion-card-title>
           </ion-card-header>
@@ -27,9 +35,9 @@
                 <ion-col size="6">
                   <div>
                     <ion-range
-                      [value]="heightLevel"
-                      min="1"
-                      max="3"
+                    [value]="heightLevelIndex"  
+                      min="0"
+                      max="2"
                       step="1"
                       snaps="true"
                       color="primary"
@@ -37,7 +45,7 @@
                     >
                       <ion-label slot="start">1</ion-label>
                       <ion-label slot="end">3</ion-label> </ion-range
-                    >{{ heights[heightLevel-1] }}
+                    >{{ heightLevels[heightLevelIndex] }}
                   </div>
                   <div>
                     <ion-toggle
@@ -142,9 +150,9 @@
               </ion-row>
             </ion-grid>
           </ion-card-content>
-        </ion-card>
+        </ion-card> -->
 
-        <ion-card>
+        <!-- <ion-card>
           <ion-card-header>
             <ion-card-title>Raw Data</ion-card-title>
           </ion-card-header>
@@ -166,10 +174,14 @@
 
             
           </ion-card-content>
-        </ion-card>
+        </ion-card> -->
+        <app-raw-data
+          [accelData]="accelData"
+          [tiltAngles]="tiltAngles"
+          [isSensorAdjustmentEnabled]="isSensorAdjustmentEnabled"
+        ></app-raw-data>
 
-
-        <ion-card>
+        <!-- <ion-card>
           <ion-card-header>
             <ion-card-title>Output for Motors</ion-card-title>
           </ion-card-header>
@@ -207,9 +219,15 @@
 
             
           </ion-card-content>
-        </ion-card>
+        </ion-card> -->
+        <app-motor-output
+          [leftMotorPWM]="leftMotorPWM"
+          [rightMotorPWM]="rightMotorPWM"
+          [leftServoPulse]="leftServoPulse"
+          [rightServoPulse]="rightServoPulse"
+        ></app-motor-output>
 
-        <ion-card>
+        <!-- <ion-card>
           <ion-card-header>
             <ion-card-title>Console</ion-card-title>
           </ion-card-header>
@@ -223,7 +241,9 @@
               style="max-height: 200px; overflow-y: auto"
             ></div>
           </ion-card-content>
-        </ion-card>
+        </ion-card> -->
+        <app-console [isConsoleAutoScrollEnabled]="isConsoleAutoScrollEnabled"></app-console>
+      
       </ion-col>
     </ion-row>
   </ion-grid>

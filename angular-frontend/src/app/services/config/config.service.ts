@@ -6,13 +6,16 @@ import axios from 'axios';
   providedIn: 'root'
 })
 export class ConfigService {
-  private configUrl = 'http://config-service:3004/config'; // URL to get config
-  private updateConfigUrl = 'http://config-service:3004/update-config'; // URL to update config
+  private configUrl = 'http://foucault.local:3004/config'
+  // 'http://config-service:3004/config'; // URL to get config
 
   // Get PID config from the server
   async getConfig(): Promise<any> {
     try {
-      const response = await axios.get(this.configUrl);
+      const response = await axios.get(this.configUrl, {
+        withCredentials: true  // Include credentials (cookies, authorization headers, etc.)
+      });
+      console.log(response)
       return response.data;
     } catch (error) {
       console.error('Error fetching config:', error);

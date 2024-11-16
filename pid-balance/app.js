@@ -125,7 +125,9 @@ mqttClient.on("message", (topic, value) => {
 async function fetchConfig() {
   try {
     console.log('Fetching configuration...');
-    const response = await axios.get('http://configuration-service:3004/config'); // Replace with actual service URL
+    const response = await axios.get('http://config-service:3004/config', {
+      withCredentials: true  // Include credentials (cookies, authorization headers, etc.)
+    }); // Replace with actual service URL
     const config = response.data;
 
     console.log('Configuration fetched successfully:', config);
@@ -170,11 +172,7 @@ function handleSetIncrementDegree(value) {
 
 function handleSetPIDParameter(param, value) {
   if (!isNaN(value)) {
-    console.log("1", value)
-    console.log("2", value.toString())
-    console.log("3", JSON.parse(value))
-    console.log("4", JSON.parse(value.toString()))
-    
+
     switch (param) {
       case "Kp":
         Kp = value.toString();
@@ -203,7 +201,7 @@ function handleSetSensorAdj(value){
 
 // Modify the handleSetHeight function to update the current height setting
 function handleSetHeight(height) {
-  if (heightLevels[heightLevel]) {
+  if (heightLevels.includes(height)) {
     heightLevel = height;
     console.log(`Height set to ${height}`);
   } else {
@@ -356,7 +354,7 @@ function updateMotors(leftOutput, rightOutput) {
 
 function adjustServos(xAngle) {
   // Base pulse width for the current height level
-  const basePulseWidth = heightLevels[heightLevel].basePulseWidth;
+  const basePulseWidth = heightLevels[heightLevel]?.basePulseWidth;
 
   // Calculate height difference from the tilt angle
   const heightDifference = xAngle * 0.1;

@@ -12,6 +12,39 @@ services:
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
     restart: unless-stopped
+
+  angular-frontend:
+    build:
+      context: ./angular-frontend
+    container_name: angular-frontend-service
+    ports:
+      - "8082:8082"
+    networks:
+      - internal-net
+      - external-net
+    depends_on:
+      - mqtt-broker
+      - config-service
+    environment:
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+  pid-balance-control:
+    build:
+      context: ./pid-balance
+    container_name: pid-balance-service
+    ports:
+      - "3003:3003"
+    privileged: true
+    devices:
+      - /dev/i2c-1:/dev/i2c-1
+      - /dev/gpiomem:/dev/gpiomem
+    networks:
+      - internal-net
+    depends_on:
+      - mqtt-broker
+      - config-service
+    environment:
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+    restart: unless-stopped
     
   # webcam-stream:
   #   build:
@@ -52,25 +85,6 @@ services:
   #     - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
   #   tty: true
 
-  pid-balance-control:
-    build:
-      context: ./pid-balance
-    container_name: pid-balance-service
-    ports:
-      - "3003:3003"
-    privileged: true
-    devices:
-      - /dev/i2c-1:/dev/i2c-1
-      - /dev/gpiomem:/dev/gpiomem
-    networks:
-      - internal-net
-    depends_on:
-      - mqtt-broker
-      - config-service
-    environment:
-      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
-    restart: unless-stopped
-
   motor-controller:
     build:
       context: ./motor-controller
@@ -100,22 +114,8 @@ services:
       - external-net
     depends_on:
       - mqtt-broker
-      # - webcam-stream
-    environment:
-      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
-
-  angular-frontend:
-    build:
-      context: ./angular-frontend
-    container_name: angular-frontend-service
-    ports:
-      - "8082:8082"
-    networks:
-      - internal-net
-      - external-net
-    depends_on:
-      - mqtt-broker
       - config-service
+      # - webcam-stream
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
 
@@ -160,51 +160,51 @@ services:
       - ./mqtt-broker/mosquitto/log:/mosquitto/log
     restart: unless-stopped
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    restart: unless-stopped
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #   restart: unless-stopped
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-      - "3001:3000"
-    networks:
-      - internal-net
-      - external-net
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=Grover428 # Change password here
-    volumes:
-      - grafana-storage:/var/lib/grafana
-    restart: unless-stopped
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: grafana
+  #   ports:
+  #     - "3001:3000"
+  #   networks:
+  #     - internal-net
+  #     - external-net
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=Grover428 # Change password here
+  #   volumes:
+  #     - grafana-storage:/var/lib/grafana
+  #   restart: unless-stopped
 
-  node-exporter:
-    image: quay.io/prometheus/node-exporter:latest
-    container_name: node-exporter
-    ports:
-      - "9100:9100"
-    restart: unless-stopped
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
+  # node-exporter:
+  #   image: quay.io/prometheus/node-exporter:latest
+  #   container_name: node-exporter
+  #   ports:
+  #     - "9100:9100"
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /:/rootfs:ro
 
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: cadvisor
-    ports:
-      - "8081:8081"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    restart: unless-stopped
+  # cadvisor:
+  #   image: gcr.io/cadvisor/cadvisor:latest
+  #   container_name: cadvisor
+  #   ports:
+  #     - "8081:8081"
+  #   volumes:
+  #     - /:/rootfs:ro
+  #     - /var/run:/var/run:rw
+  #     - /sys:/sys:ro
+  #     - /var/lib/docker/:/var/lib/docker:ro
+  #   restart: unless-stopped
 
 networks:
   internal-net:
