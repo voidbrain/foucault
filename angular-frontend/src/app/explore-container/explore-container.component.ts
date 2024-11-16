@@ -517,7 +517,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
   setupSocket() {
     if (this.socket === null) {
-      this.socket = io('http://foucault.local:8080'); // Make sure this URL is correct
+      this.socket = io('http://foucault:8080'); // Make sure this URL is correct
     }
 
     this.socket.on('connect', () => {

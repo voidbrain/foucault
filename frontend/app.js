@@ -10,8 +10,8 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: [
-      'http://foucault.local:8082', 
-      'http://foucault.local:3003/', 
+      'http://foucault:8082', 
+      'http://foucault:3003', 
       'http://angular-frontend-service:8082', 
       'http://pid-balance-service:3003'
     ],

@@ -1,3 +1,4 @@
+// config service server.js
 const express = require('express');
 const bodyParser = require('body-parser');
 const mqtt = require('mqtt');
@@ -10,10 +11,11 @@ const app = express();
 // Enable CORS for the Angular frontend
 app.use(cors({
   origin: [
-    'http://foucault.local:8082', 
-    'http://foucault.local:3003/', 
+    'http://foucault:8082', 
+    'http://foucault:3003', 
     'http://angular-frontend-service:8082', 
-    'http://pid-balance-service:3003'],
+    'http://pid-balance-service:3003'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type'],
   credentials: true

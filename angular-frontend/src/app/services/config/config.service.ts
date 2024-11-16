@@ -6,7 +6,7 @@ import axios from 'axios';
   providedIn: 'root'
 })
 export class ConfigService {
-  private configUrl = 'http://foucault.local:3004/config'
+  private configUrl = 'http://foucault:3004/config'
   // 'http://config-service:3004/config'; // URL to get config
 
   // Get PID config from the server
