@@ -84,7 +84,7 @@ export class ExploreContainerComponent implements AfterViewInit {
   heightLevel: string = this.heightLevels[1];
   degree = 0;
 
-  accelData = { accelX: 0 , accelY:0, accelZ:0 }
+  accelData = { accelData : { accelX: 0 , accelY:0, accelZ:0 }}
   tiltAngles = { xAngle:0, yAngle:0 }
 
   leftMotorPWM:  null | { value:number} = null;
@@ -537,7 +537,7 @@ export class ExploreContainerComponent implements AfterViewInit {
 
       switch (topic) {
         case this.topics.input.accelData:
-          this.handleAccelData(parsedMessage as { accelX:number, accelY:number, accelZ:number });
+          this.handleAccelData(parsedMessage as { accelData:  { accelX:number, accelY:number, accelZ:number }});
           break;
 
         case this.topics.input.tiltAngles:
@@ -616,7 +616,7 @@ export class ExploreContainerComponent implements AfterViewInit {
     });
   }
 
-  handleAccelData(data: { accelX: number; accelY: number; accelZ: number }) {
+  handleAccelData(data: { accelData :{ accelX: number; accelY: number; accelZ: number }}) {
     // this.updateConsoleAccelData(data);
     this.accelData = data;
   }

@@ -115,7 +115,7 @@ import {
                       <ion-col size="3" class="ion-text-center">
                         
                           
-                       <label>Increment °</label>
+                       <label>Degree</label>
                           <input
                             [(ngModel)]="incrementDegree"
                             type="number"

@@ -201,12 +201,8 @@ function handleSetSensorAdj(value){
 
 // Modify the handleSetHeight function to update the current height setting
 function handleSetHeight(height) {
-  if (heightLevels.includes(height)) {
+  
     heightLevel = height;
-    console.log(`Height set to ${height}`);
-  } else {
-    console.warn(`Unknown height level: ${height}`);
-  }
 }
 
 function handleStop() {

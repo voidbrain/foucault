@@ -39,9 +39,9 @@ import {
                 [color]="isSensorAdjustmentEnabled ? 'primary' : 'secondary'"
                 id="accelData-content">
                 <ng-container *ngIf="accelData; else loadingAccel">
-                  X: {{ accelData.accelX }} m/s<sup>2</sup> <br />
-                  Y: {{ accelData.accelY }} m/s<sup>2</sup> <br />
-                  Z: {{ accelData.accelZ }} m/s<sup>2</sup>{{ accelData | json }}
+                  X: {{ accelData?.accelData?.accelX }} m/s<sup>2</sup> <br />
+                  Y: {{ accelData?.accelData?.accelY }} m/s<sup>2</sup> <br />
+                  Z: {{ accelData?.accelData?.accelZ }} m/s<sup>2</sup>
                 </ng-container>
                 <ng-template #loadingAccel>Loading...</ng-template>
               </ion-text>
@@ -65,7 +65,7 @@ import {
   `,
 })
 export class RawDataComponent {
-  @Input() accelData:  { accelX: number; accelY: number; accelZ: number } | null = null; // Accelerometer data
+  @Input() accelData: { accelData: { accelX: number; accelY: number; accelZ: number }} | null = null; // Accelerometer data
   @Input() tiltAngles: { xAngle: number; yAngle: number } | null = null; // Tilt data
   @Input() isSensorAdjustmentEnabled: boolean = false; // Sensor adjustment state
 }
