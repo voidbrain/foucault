@@ -5,10 +5,10 @@ import {
   ChangeDetectorRef,
   ElementRef,
   ViewChild,
+  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { ConfigService, TopicsInterface } from '../services/config/config.service';
 import {
   IonContent,
@@ -33,6 +33,7 @@ import {
 import * as THREE from 'three';
 import { ControlComponent } from '../components/control/control.component';
 import { ConsoleComponent } from '../components/console/console.component';
+import { ThreejsComponent } from '../components/threejs/threejs.component';
 import { RawDataComponent } from '../components/raw-data/raw-data.component';
 import { MotorOutputComponent } from '../components/motor-output/motor-output.component';
 
@@ -46,6 +47,7 @@ import { MotorOutputComponent } from '../components/motor-output/motor-output.co
   imports: [
     ControlComponent,
     ConsoleComponent,
+    ThreejsComponent,
     RawDataComponent,
     MotorOutputComponent,
     IonContent,
@@ -71,7 +73,7 @@ import { MotorOutputComponent } from '../components/motor-output/motor-output.co
   ],
 })
 
-export class ExploreContainerComponent implements AfterViewInit {
+export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   @ViewChild(ConsoleComponent) consoleComponent: ConsoleComponent | undefined;
   isConsoleAutoScrollEnabled: boolean = true;
   private messageIndex = 0;
@@ -95,19 +97,10 @@ export class ExploreContainerComponent implements AfterViewInit {
   leftServoPulse:  null | { value:number} = null;
   rightServoPulse:  null | { value:number} = null;
 
-  THREESettings = {
-    HEIGHT_LOW: 1,
-    HEIGHT_MID: 2,
-    HEIGHT_HIGH: 3,
-  
-    BODY_LOW: 0.4,
-    BODY_HEIGHT_MID: 1,
-    BODY_HEIGHT_HIGH: 1.2,
-  
-    LEG_LOW: 0,
-    LEG_HEIGHT_MID: 1,
-    LEG_HEIGHT_HIGH: 2,
-  }
+  adjustTHREERobotHeightValue! :string;
+  updateTHREERobotTiltValue! :{ xAngle: number; yAngle: number };
+  updateTHREERobotWheelMovementValue! : { servo: string, data: any };
+  updateTHREERobotMotorPWMValue! : { wheel: string, data: { value: number} }
 
   isSensorAdjustmentEnabled: boolean = false
 
@@ -117,15 +110,6 @@ export class ExploreContainerComponent implements AfterViewInit {
   walkBackwardActive = false;
   walkLeftActive = false;
   walkRightActive = false;
-
-  scene!: THREE.Scene;
-  camera!: THREE.PerspectiveCamera;
-  renderer!: THREE.WebGLRenderer;
-  referencePlane!: THREE.Mesh;
-  leftWheel!: THREE.Mesh;
-  rightWheel!: THREE.Mesh;
-  leftLeg!: THREE.Group;
-  rightLeg!: THREE.Group;
 
   @ViewChild('threejsContainer', { static: true })
   threejsContainer!: ElementRef<HTMLDivElement>;
@@ -149,11 +133,8 @@ export class ExploreContainerComponent implements AfterViewInit {
   async ngAfterViewInit() {
     await this.getConfig();
     this.topics = this.configService.getTopics();
-
-    this.setupThreeJS();
-    this.animateTHREERobot();
     this.setupSocket();
-    this.adjustTHREERobotHeight('mid');
+
 
     document.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
@@ -217,40 +198,6 @@ export class ExploreContainerComponent implements AfterViewInit {
     if(config.isSensorAdjustmentEnabled){ this.isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled }
   }
 
-  adjustTHREERobotHeight(height: string) {
-    let targetHeight = this.THREESettings.HEIGHT_MID;
-    let offsetHeight;
-    switch (height) {
-      case 'low':
-        targetHeight = this.THREESettings.HEIGHT_LOW;
-        offsetHeight = -0.8;
-        this.updateTHREERobotBody(this.THREESettings.HEIGHT_LOW, offsetHeight);
-        break;
-      case 'mid':
-        targetHeight = this.THREESettings.HEIGHT_MID;
-        offsetHeight = 0;
-        this.updateTHREERobotBody(this.THREESettings.BODY_HEIGHT_MID, offsetHeight);
-        break;
-      case 'high':
-        targetHeight = this.THREESettings.HEIGHT_HIGH;
-        offsetHeight = +0.2;
-        this.updateTHREERobotBody(this.THREESettings.BODY_HEIGHT_HIGH, offsetHeight);
-        break;
-    }
-
-    this.updateTHREERobotLegs(targetHeight);
-  }
-
-  updateTHREERobotLegs(height: number) {
-    this.adjustTHREERobotLegPosition(-1, height); // Left leg
-    this.adjustTHREERobotLegPosition(1, height); // Right leg
-  }
-
-  updateTHREERobotBody(targetHeight: number, offsetHeight: number) {
-
-    this.referencePlane.position.y = targetHeight + offsetHeight + 0.6;
-  }
-
   updateKp(Kp: number){
     this.Kp = Kp;
     if (this.socket !== null) {
@@ -279,195 +226,6 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
   }
 
-  adjustTHREERobotLegPosition(x: number, height: number) {
-    const leg = this.scene.children.find(
-      (child: { name: string }) =>
-        child instanceof THREE.Group && child.name === `leg-${x}`
-    ) as THREE.Group;
-    if (leg) {
-      const thighUp = leg.children[0];
-      const thighDown = leg.children[1];
-      const shin = leg.children[2];
-
-      const offset = height - 1;
-
-      switch (height) {
-        case 1: // low
-          thighUp.rotation.x = Math.PI / 2;
-          thighUp.position.x = 0;
-          thighUp.position.y = 0.5;
-          thighUp.position.z = -0.3;
-
-          shin.rotation.x = -(Math.PI / 4);
-          shin.position.x = 0;
-          shin.position.y = 0.2;
-          shin.position.z = -0.5;
-
-          thighDown.position.set(0, 0.7, -0.4);
-          thighDown.rotation.x = Math.PI / 2;
-          break;
-        case 2: // mid
-          thighUp.rotation.x = Math.PI / 4;
-          thighUp.position.x = 0;
-          thighUp.position.y = 1;
-          thighUp.position.z = -0.2;
-
-          shin.rotation.x = -(Math.PI / 6);
-          shin.position.x = 0;
-          shin.position.y = 0.5;
-          shin.position.z = -0.3;
-
-          thighDown.position.set(0, 1.2, -0.4);
-          thighDown.rotation.x = Math.PI / 5;
-          break;
-        case 3: // high
-          thighUp.rotation.x = Math.PI;
-          thighUp.position.x = 0;
-          thighUp.position.y = 1.1;
-          thighUp.position.z = 0;
-
-          shin.rotation.x = Math.PI;
-          shin.position.x = 0;
-          shin.position.y = 0.3;
-          shin.position.z = 0;
-
-          thighDown.position.set(0, 1.2, -0.2);
-          thighDown.rotation.x = Math.PI;
-          break;
-        default:
-          break;
-      }
-
-      this.updateTHREERobotLegServos(leg, height);
-    }
-  }
-
-  updateTHREERobotLegServos(leg: THREE.Group, height: number) {
-    const THREEServo = leg.children.find(
-      (child) =>
-        child instanceof THREE.Mesh &&
-        child.geometry.type === 'CylinderGeometry'
-    );
-    if (THREEServo) {
-      switch (height) {
-        case this.THREESettings.HEIGHT_HIGH:
-          THREEServo.position.y = 1.4;
-          break;
-        case this.THREESettings.HEIGHT_MID:
-          THREEServo.position.y = 1.2;
-          break;
-        case this.THREESettings.HEIGHT_LOW:
-          THREEServo.position.y = 0.5;
-          break;
-      }
-    }
-  }
-
-  setupThreeJS() {
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    this.renderer = new THREE.WebGLRenderer();
-
-    const container = this.threejsContainer?.nativeElement;
-    if (container) {
-      const width = 800;
-      const height = 500;
-      this.renderer.setSize(width, height);
-      container.appendChild(this.renderer.domElement);
-    }
-
-    this.referencePlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(2, 1),
-      new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide })
-    );
-    this.referencePlane.position.set(0, 1.6, 0);
-    this.referencePlane.rotation.x = Math.PI / 2;
-    this.scene.add(this.referencePlane);
-
-    this.addTHREERobotWheel(-1.2, -0.4, -0.2);
-    this.addTHREERobotWheel(1.2, -0.4, -0.2);
-
-    this.addTHREERobotLeg(-1, -1.2, 0, 0);
-    this.addTHREERobotLeg(1, 1.2, 0, 0);
-
-    this.camera.position.set(-2, 2, 3);
-
-    const controls = new OrbitControls(this.camera, this.renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.25;
-    controls.screenSpacePanning = false;
-    controls.maxPolarAngle = Math.PI / 2;
-
-    this.addTHREERobotGrid();
-    this.animateTHREERobot();
-  }
-
-  addTHREERobotWheel(x: number, y: number, z: number) {
-    const wheel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
-      new THREE.MeshBasicMaterial({ color: 0x0000ff })
-    );
-    wheel.position.set(x, y, z);
-    wheel.rotation.x = Math.PI / 2;
-    wheel.rotation.z = Math.PI / 2;
-    this.scene.add(wheel);
-  }
-
-  addTHREERobotLeg(name: number, x: number, y: number, z: number) {
-    const leg = new THREE.Group();
-
-    const thighUp = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.8, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    thighUp.position.set(0, 0.7, -0.3);
-    thighUp.rotation.x = Math.PI / 4;
-    leg.add(thighUp);
-
-    const thighDown = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.6, 0.1),
-      new THREE.MeshBasicMaterial({ color: 0xffd700 })
-    );
-    thighDown.position.set(0, 1.2, -0.4);
-    thighDown.rotation.x = Math.PI / 5;
-    leg.add(thighDown);
-
-    const shin = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.8, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    shin.position.set(0, 0, 0);
-    shin.rotation.x = -(Math.PI / 4);
-    leg.add(shin);
-
-    const servo = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.1, 0.1, 0.2, 16),
-      new THREE.MeshBasicMaterial({ color: 0xffff00 })
-    );
-    servo.position.set(0, 1, 0);
-    servo.rotation.z = Math.PI / 2;
-    leg.add(servo);
-
-    leg.position.set(x, y, z);
-    leg.name = `leg-${name}`; // Assign unique name
-    this.scene.add(leg);
-  }
-
-  addTHREERobotGrid() {
-    const gridHelper = new THREE.GridHelper(10, 10);
-    gridHelper.position.y = -1;
-    this.scene.add(gridHelper);
-  }
-
-  animateTHREERobot() {
-    requestAnimationFrame(this.animateTHREERobot.bind(this));
-    this.renderer.render(this.scene, this.camera);
-  }
 
   startCAMERAObjectDetection() {
     if (this.socket !== null) {
@@ -494,7 +252,7 @@ export class ExploreContainerComponent implements AfterViewInit {
       if(data) {
         parsedMessage = JSON.parse(data);
       }
-      
+
       switch (topic) {
         case this.topics.input["accelData"]:
           this.handleAccelData(parsedMessage as { accelData:  { accelX:number, accelY:number, accelZ:number }});
@@ -538,13 +296,13 @@ export class ExploreContainerComponent implements AfterViewInit {
           this.walkRightActive = true;
           break;
         case this.topics.input["setHeightLow"] :
-          this.adjustTHREERobotHeight(this.heightLevels[0]);
+          this.adjustTHREERobotHeightValue = this.heightLevels[0];
         break;
         case this.topics.input["setHeightMid"] :
-          this.adjustTHREERobotHeight(this.heightLevels[1]);
+          this.adjustTHREERobotHeightValue = this.heightLevels[1];
         break;
         case this.topics.input["setHeightHigh"]:
-          this.adjustTHREERobotHeight(this.heightLevels[2]);
+          this.adjustTHREERobotHeightValue = this.heightLevels[2];
         break;
         case this.topics.input["enableSensorAdjustementsTrue"]:
           this.isSensorAdjustmentEnabled = true;
@@ -553,16 +311,16 @@ export class ExploreContainerComponent implements AfterViewInit {
           this.isSensorAdjustmentEnabled = false;
           break;
 
-         case this.topics.input["setKp"]:
+        case this.topics.input["setKp"]:
             this.Kp = parsedMessage.value;
           break;
-         case this.topics.input["setKi"]:
+        case this.topics.input["setKi"]:
             this.Ki = parsedMessage.value;
           break;
-         case this.topics.input["setKd"]:
+        case this.topics.input["setKd"]:
             this.Kd = parsedMessage.value;
           break;
-         case this.topics.input["setincrementDegree"]:
+        case this.topics.input["setincrementDegree"]:
             this.incrementDegree = parsedMessage.value;
           break;
         default:
@@ -578,7 +336,7 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   handleTiltAngles(data: { xAngle: number; yAngle: number }) {
     this.tiltAngles = data;
-    this.updateTHREERobotTilt(data);
+    this.updateTHREERobotTiltValue = data;
   }
 
   handleConsoleMessage(topic: string, message: string, source: string) {
@@ -587,37 +345,31 @@ export class ExploreContainerComponent implements AfterViewInit {
   }
 
   handleServoPulseWidth(servo: string, data: any) {
-    if (servo === 'left' && this.rightLeg) {
-      const rightLegPosition = this.rightLeg ? this.rightLeg.position : null;
-      const rightHeight = rightLegPosition ? rightLegPosition.y : 0;
-      this.updateTHREERobotWheelMovement({
-        leftHeight: data.value,
-        rightHeight: rightHeight,
-      });
-    } else if (servo === 'right' && this.leftLeg) {
-      const leftLegPosition = this.leftLeg ? this.leftLeg.position : null;
-      const leftHeight = leftLegPosition ? leftLegPosition.y : 0;
-      this.updateTHREERobotWheelMovement({
-        leftHeight: leftHeight,
-        rightHeight: data.value,
-      });
-    }
-    const servoValueElement = document.getElementById(`${servo}-servo-value`);
-    if (servoValueElement) {
-      servoValueElement.innerText = `${data.value}`;
-    }
+    this.updateTHREERobotWheelMovementValue = { servo, data};
+    // if (servo === 'left' && this.rightLeg) {
+    //   const rightLegPosition = this.rightLeg ? this.rightLeg.position : null;
+    //   const rightHeight = rightLegPosition ? rightLegPosition.y : 0;
+    //   this.updateTHREERobotWheelMovement({
+    //     leftHeight: data.value,
+    //     rightHeight: rightHeight,
+    //   });
+    // } else if (servo === 'right' && this.leftLeg) {
+    //   const leftLegPosition = this.leftLeg ? this.leftLeg.position : null;
+    //   const leftHeight = leftLegPosition ? leftLegPosition.y : 0;
+    //   this.updateTHREERobotWheelMovement({
+    //     leftHeight: leftHeight,
+    //     rightHeight: data.value,
+    //   });
+    // }
+    // const servoValueElement = document.getElementById(`${servo}-servo-value`);
+    // if (servoValueElement) {
+    //   servoValueElement.innerText = `${data.value}`;
+    // }
 
     this.cdr.detectChanges();
   }
 
-  updateTHREERobotMotorPWM(wheel: string, data: { value: number} ) {
-    const rotationIncrement = THREE.MathUtils.degToRad(data.value);
-    if (wheel === 'left' && this.leftWheel) {
-      this.leftWheel.rotation.z += rotationIncrement;
-    } else if (wheel === 'right' && this.rightWheel) {
-      this.rightWheel.rotation.z += rotationIncrement;
-    }
-  }
+
 
   updateConsoleTiltAngles(data: { xAngle: number; yAngle: number }) {
     console.log(data)
@@ -629,20 +381,21 @@ export class ExploreContainerComponent implements AfterViewInit {
     }
   }
 
-  updateTHREERobotWheelMovement(data: { leftHeight: number; rightHeight: number }) {
-    this.leftLeg.position.y = data.leftHeight;
-    this.rightLeg.position.y = data.rightHeight;
+  updateTHREERobotMotorPWM(wheel: string, data: { value: number} ) {
+    this.updateTHREERobotMotorPWMValue = {wheel, data}
+    // const rotationIncrement = THREE.MathUtils.degToRad(data.value);
+    // if (wheel === 'left' && this.leftWheel) {
+    //   this.leftWheel.rotation.z += rotationIncrement;
+    // } else if (wheel === 'right' && this.rightWheel) {
+    //   this.rightWheel.rotation.z += rotationIncrement;
+    // }
   }
 
-  updateTHREERobotTilt(data: { xAngle: number; yAngle: number }) {
 
-    this.referencePlane.rotation.x = Math.PI / 2 + THREE.MathUtils.degToRad(data.xAngle);
-    this.referencePlane.rotation.y = THREE.MathUtils.degToRad(data.yAngle);
-  }
 
   sendControlCommand(command: string) {
     if (this.socket !== null) {
-      
+
       this.socket.emit('message', { topic: command, souce: 'Angular FE' });
     } else {
       console.warn('Socket is null');
@@ -694,4 +447,5 @@ export class ExploreContainerComponent implements AfterViewInit {
   ngOnDestroy() {
     this.socket?.disconnect();
   }
+
 }
