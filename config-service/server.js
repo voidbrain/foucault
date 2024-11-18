@@ -1,3 +1,4 @@
+// config service server.js
 const express = require('express');
 const bodyParser = require('body-parser');
 const mqtt = require('mqtt');
@@ -9,15 +10,21 @@ const app = express();
 
 // Enable CORS for the Angular frontend
 app.use(cors({
-  origin: 'http://angular-frontend:8082', // Replace with your Angular frontend URL if different
+  origin: [
+    'http://foucault:8082', 
+    'http://foucault:3003', 
+    'http://angular-frontend-service:8082', 
+    'http://pid-balance-service:3003'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type'],
+  credentials: true
 }));
 
 app.use(bodyParser.json());
 
 // Path to the config file
-const configFilePath = '/shared-config/config.json';
+const configFilePath = 'config.json';
 
 // Load initial config from file, if it exists
 let config = {};

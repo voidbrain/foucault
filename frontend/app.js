@@ -9,8 +9,15 @@ const path = require('path');
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: 'http://foucault:8082', // Allow frontend access from http://foucault:8082
-    methods: ["GET", "POST"]
+    origin: [
+      'http://foucault:8082', 
+      'http://foucault:3003', 
+      'http://angular-frontend-service:8082', 
+      'http://pid-balance-service:3003'
+    ],
+    methods: ["GET", "POST"],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
   }
 });
 

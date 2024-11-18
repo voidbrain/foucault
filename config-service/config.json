@@ -3,6 +3,6 @@
   "Ki": 0.0,
   "Kd": 0.4,
   "incrementDegree": 1,
-  "heightLevel": 2,
+  "heightLevel": "mid",
   "isSensorAdjustmentEnabled": true
 }
