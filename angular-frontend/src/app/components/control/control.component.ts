@@ -189,10 +189,7 @@ export class ControlComponent implements AfterViewInit {
   walkBackwardActive: boolean = false;
   walkRightActive: boolean = false;
 
-  public topics: TopicsInterface = {
-    input: {},
-    output: {}
-  };
+  public topics!: TopicsInterface;
 
   constructor(
     private configService: ConfigService | null = null;

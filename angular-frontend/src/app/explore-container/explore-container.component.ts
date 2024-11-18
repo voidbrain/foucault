@@ -111,7 +111,7 @@ export class ExploreContainerComponent implements AfterViewInit {
 
   isSensorAdjustmentEnabled: boolean = false
 
-  private topics: TopicsInterface | null = null;
+  private topics!: TopicsInterface;
 
   walkForwardActive = false;
   walkBackwardActive = false;
