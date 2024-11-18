@@ -2,7 +2,7 @@ import {
   Component,
   AfterViewInit,
   OnChanges,
-  SimpleChanges
+  SimpleChanges,
   ElementRef,
   ViewChild,
   Input,
@@ -13,6 +13,7 @@ import * as THREE from 'three';
   selector: 'app-threejs',
   templateUrl: './threejs.component.html',
   styleUrls: ['./threejs.component.scss'],
+  standalone: true
 })
 export class ThreejsComponent implements AfterViewInit, OnChanges {
   scene!: THREE.Scene;

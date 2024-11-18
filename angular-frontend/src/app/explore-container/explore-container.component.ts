@@ -100,7 +100,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   adjustTHREERobotHeightValue! :string;
   updateTHREERobotTiltValue! :{ xAngle: number; yAngle: number };
   updateTHREERobotWheelMovementValue! : { servo: string, data: any };
-  updateTHREERobotMotorPWMValue! : { wheel: string, data: { value: number} }
+  updateTHREERobotMotorPWMValue! : { wheel: string, data: { value: number} };
 
   isSensorAdjustmentEnabled: boolean = false
 
