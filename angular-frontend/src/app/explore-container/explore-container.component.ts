@@ -251,6 +251,13 @@ export class ExploreContainerComponent implements AfterViewInit {
     this.referencePlane.position.y = targetHeight + offsetHeight + 0.6;
   }
 
+  updateKp(Kp: number){
+    this.Kp = Kp;
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output["setKp"], value: Kp.toString(), souce: 'Angular FE' });
+    }
+  }
+
   updateKi(Ki: number){
     this.Ki = Ki;
     if (this.socket !== null) {
