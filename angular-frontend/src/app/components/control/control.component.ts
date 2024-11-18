@@ -192,7 +192,8 @@ export class ControlComponent implements AfterViewInit {
   public topics!: TopicsInterface;
 
   constructor(
-    private configService: ConfigService | null = null;
+    private configService: ConfigService
+  ){}
 
   ngAfterViewInit(){
     this.topics = this.configService.getTopics();
