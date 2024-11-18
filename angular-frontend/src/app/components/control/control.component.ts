@@ -1,5 +1,6 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ConfigService, TopicsInterface } from 'src/app/services/config/config.service';
 import { FormsModule } from '@angular/forms';
 import {
   IonRow,
@@ -79,7 +80,7 @@ import {
                               [(ngModel)]="Kp"
                               type="number"
                               placeholder="Kp"
-                              (change)="updatePID()"
+                              (change)="updateKp()"
                             />
                           
                         
@@ -93,7 +94,7 @@ import {
                             [(ngModel)]="Ki"
                             type="number"
                             placeholder="Ki"
-                            (change)="updatePID()"
+                            (change)="updateKi()"
                           />
                         
                         
@@ -107,7 +108,7 @@ import {
                             [(ngModel)]="Kd"
                             type="number"
                             placeholder="Kd"
-                            (change)="updatePID()"
+                            (change)="updateKd()"
                           />
                         
                         
@@ -128,7 +129,7 @@ import {
                     </ion-row>
                     <ion-row>
                       <ion-col size="12" class="ion-text-center">
-                        <ion-button (click)="sendControlCommand(topics.output.walkForward)"
+                        <ion-button (click)="sendControlCommand(topics.output['walkForward'])"
                         [class]="walkForwardActive ? 'pulse-effect' : ''"
                           >W</ion-button
                         >
@@ -136,19 +137,19 @@ import {
                     </ion-row>
                     <ion-row>
                       <ion-col size="4" class="ion-text-center">
-                        <ion-button (click)="sendControlCommand(topics.output.walkLeft)"
+                        <ion-button (click)="sendControlCommand(topics.output['walkLeft'])"
                         [class]="walkLeftActive ? 'pulse-effect' : ''"
                           >A</ion-button
                         >
                       </ion-col>
                       <ion-col size="4" class="ion-text-center">
-                        <ion-button (click)="sendControlCommand(topics.output.walkBackward)"
+                        <ion-button (click)="sendControlCommand(topics.output['walkBackward'])"
                         [class]="walkBackwardActive ? 'pulse-effect' : ''"
                           >S</ion-button
                         >
                       </ion-col>
                       <ion-col size="4" class="ion-text-center">
-                        <ion-button (click)="sendControlCommand(topics.output.walkRight)"
+                        <ion-button (click)="sendControlCommand(topics.output['walkRight'])"
                         [class]="walkRightActive ? 'pulse-effect' : ''"
                           >D</ion-button
                         >
@@ -162,7 +163,7 @@ import {
     </ion-card>
   `,
 })
-export class ControlComponent {
+export class ControlComponent implements AfterViewInit {
   @Input() heights: string[] = [];
   @Input() heightLevelIndex: number = 0;
   @Input() isSensorAdjustmentEnabled: boolean = false;
@@ -172,6 +173,11 @@ export class ControlComponent {
   @Output() stopCommand = new EventEmitter<void>();
   @Output() controlCommand = new EventEmitter<string>();
   @Output() degreeChanged = new EventEmitter<number>();
+
+  @Output() KiChanged = new EventEmitter<number>();
+  @Output() KpChanged = new EventEmitter<number>();
+  @Output() KdChanged = new EventEmitter<number>();
+
 
   @Input() Kp: number = 0;
   @Input() Ki: number = 0;
@@ -183,55 +189,32 @@ export class ControlComponent {
   walkBackwardActive: boolean = false;
   walkRightActive: boolean = false;
 
-  topics = {
-    input: {
-      console: 'console/log',
-      accelData: 'controller/accelData',
-      tiltAngles: 'controller/tiltAngles',
-      motorLeft: 'controller/motorPWM/left',
-      motorRight: 'controller/motorPWM/right',
-      servoLeft: 'controller/servoPulseWidth/left',
-      servoRight: 'controller/servoPulseWidth/right',
-
-      walkForward: "pid/move/forward",
-      walkBackward: "pid/move/backward",
-      walkLeft: "pid/move/left",
-      walkRight: "pid/move/right",
-      setHeightLow: "pid/set/height/low",
-      setHeightMid: "pid/set/height/mid",
-      setHeightHigh: "pid/set/height/high",
-      enableSensorAdjustementsTrue: "pid/sensor/enable/true",
-      enableSensorAdjustementsFalse: "pid/sensor/enable/false",
-      setKp: "pid/set/Kp",
-      setKi: "pid/set/Ki",
-      setKd: "pid/set/Kd",
-      setincrementDegree: "pid/set/increment",
-    },
-    output: {
-      walkForward: "pid/move/forward",
-      walkBackward: "pid/move/backward",
-      walkLeft: "pid/move/left",
-      walkRight: "pid/move/right",
-      stop: "pid/stop",
-      setHeightLow: "pid/set/height/low",
-      setHeightMid: "pid/set/height/mid",
-      setHeightHigh: "pid/set/height/high",
-
-      enableSensorAdjustementsTrue: "pid/sensor/enable/true",
-      enableSensorAdjustementsFalse: "pid/sensor/enable/false",
-      setKp: "pid/set/Kp",
-      setKi: "pid/set/Ki",
-      setKd: "pid/set/Kd",
-      setincrementDegree: "pid/set/increment",
-    }
+  public topics: TopicsInterface = {
+    input: {},
+    output: {}
   };
+
+  constructor(
+    private configService: ConfigService | null = null;
+
+  ngAfterViewInit(){
+    this.topics = this.configService.getTopics();
+  }
 
   sendControlCommand(direction: string) {
     this.controlCommand.emit(direction);
   }
 
-  updatePID() {
-    console.log('PID updated:', { Kp: this.Kp, Ki: this.Ki, Kd: this.Kd });
+  updateKp() {
+    this.KpChanged.emit(this.Kp);
+  }
+
+  updateKi() {
+    this.KiChanged.emit(this.Ki);
+  }
+
+  updateKd() {
+    this.KdChanged.emit(this.Kd);
   }
 
   updateIncrementDegree() {

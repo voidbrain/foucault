@@ -39,9 +39,9 @@ import {
                 [color]="isSensorAdjustmentEnabled ? 'primary' : 'secondary'"
                 id="accelData-content">
                 <ng-container *ngIf="accelData; else loadingAccel">
-                  X: {{ accelData?.accelData?.accelX }} m/s<sup>2</sup> <br />
-                  Y: {{ accelData?.accelData?.accelY }} m/s<sup>2</sup> <br />
-                  Z: {{ accelData?.accelData?.accelZ }} m/s<sup>2</sup>
+                  X: {{ accelData.accelData.accelX }} m/s<sup>2</sup> <br />
+                  Y: {{ accelData.accelData.accelY }} m/s<sup>2</sup> <br />
+                  Z: {{ accelData.accelData.accelZ }} m/s<sup>2</sup>
                 </ng-container>
                 <ng-template #loadingAccel>Loading...</ng-template>
               </ion-text>
