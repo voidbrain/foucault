@@ -160,6 +160,7 @@ fetchConfig().then(() => {
 
 
 function handleSetIncrementDegree(value) {
+  console.log(value)
   if (!isNaN(value)) {
     incrementDegree = value;
     console.log(`Increment set to ${incrementDegree}`);

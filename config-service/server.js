@@ -74,7 +74,6 @@ mqttClient.on('message', (topic, message) => {
     case topics.input.setIncrementDegree:
       param = 'incrementDegree';
       break;
-     
     case topics.input.setHeightLow:
       param = 'heightLevel';
       message = 'LOW'
@@ -96,8 +95,10 @@ mqttClient.on('message', (topic, message) => {
       message = false;
       break;
   }
-
+  
   const value = parseFloat(message.toString());
+
+  console.log(message, param, config, value);
 
   // Update config if valid value and save to file
   if (config.hasOwnProperty(param) && !isNaN(value)) {
