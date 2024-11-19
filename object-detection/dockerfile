@@ -1,5 +1,5 @@
 # Use an official Node.js base image
-FROM node:23.0.0
+FROM node:20.0.0
 
 # Install dependencies for Coral TPU
 RUN apt-get update && apt-get install -y \

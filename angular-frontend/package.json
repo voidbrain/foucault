@@ -5,7 +5,8 @@
   "homepage": "https://ionicframework.com/",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start-docker": "ng serve --port 8082",
+    "start-local": "ng serve --port 8084",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",

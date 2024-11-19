@@ -10,7 +10,7 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: [
-      'http://localhost:8082', 
+      'http://localhost:8084', 
       'http://foucault:8082', 
       'http://foucault:3003', 
       'http://angular-frontend-service:8082', 
