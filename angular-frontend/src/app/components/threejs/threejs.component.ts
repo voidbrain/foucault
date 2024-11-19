@@ -28,9 +28,8 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
   @ViewChild('threejsContainer', { static: true }) threejsContainer!: ElementRef<HTMLDivElement>;
   @Input() adjustTHREERobotHeightValue!: string;
   @Input() updateTHREERobotTiltValue!: { xAngle: number; yAngle: number };
-  @Input() updateTHREERobotMotorPWMValue!: { servo: string, data: any };
-  @Input() updateTHREERobotWheelMovementValue!: { wheel: string, data: { value: number} };
-
+  @Input() updateTHREERobotMotorPWMValue!: {wheel: string, data: { value: number}}; // { wheel: string, data: { value: number} };
+  @Input() updateTHREERobotWheelMovementValue!: { leftHeight: number | null; rightHeight: number | null };
 
   THREESettings = {
     HEIGHT_LOW: 1,
@@ -67,29 +66,32 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  updateTHREERobotMotorPWM(value: any) {
-    const wheel = value.wheel;
-    const data = value.data;
-    const rotationIncrement = THREE.MathUtils.degToRad(data.value);
-    if (wheel === 'left' && this.leftWheel) {
+  updateTHREERobotMotorPWM(data:{wheel: string, data: { value: number}} ) {
+    const rotationIncrement = THREE.MathUtils.degToRad(data.data.value);
+    if (data.wheel === 'left' && this.leftWheel) {
       this.leftWheel.rotation.z += rotationIncrement;
-    } else if (wheel === 'right' && this.rightWheel) {
+    } else if (data.wheel === 'right' && this.rightWheel) {
       this.rightWheel.rotation.z += rotationIncrement;
     }
+  }
+
+  updateTHREERobotWheelMovement(data: { leftHeight: number; rightHeight: number }) {
+    this.leftLeg.position.y = data.leftHeight;
+    this.rightLeg.position.y = data.rightHeight;
   }
 
   handleServoPulseWidth(value: any) {
     const servo = value.servo;
       const data = value.data;
 
-    if (servo === 'left' && this.rightLeg) {
+    if (value && servo === 'left' && this.rightLeg) {
       const rightLegPosition = this.rightLeg ? this.rightLeg.position : null;
       const rightHeight = rightLegPosition ? rightLegPosition.y : 0;
       this.updateTHREERobotWheelMovement({
         leftHeight: data.value,
         rightHeight: rightHeight,
       });
-    } else if (servo === 'right' && this.leftLeg) {
+    } else if (value && servo === 'right' && this.leftLeg) {
       const leftLegPosition = this.leftLeg ? this.leftLeg.position : null;
       const leftHeight = leftLegPosition ? leftLegPosition.y : 0;
       this.updateTHREERobotWheelMovement({
@@ -102,8 +104,6 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
       servoValueElement.innerText = `${data.value}`;
     }
   }
-
-
 
   setupThreeJS() {
     this.scene = new THREE.Scene();
@@ -166,13 +166,7 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
     this.updateTHREERobotLegs(targetHeight);
   }
 
-  updateTHREERobotWheelMovement(data: { leftHeight: number; rightHeight: number }) {
-    this.leftLeg.position.y = data.leftHeight;
-    this.rightLeg.position.y = data.rightHeight;
-  }
-
   updateTHREERobotTilt(data: { xAngle: number; yAngle: number }) {
-
     this.referencePlane.rotation.x = Math.PI / 2 + THREE.MathUtils.degToRad(data.xAngle);
     this.referencePlane.rotation.y = THREE.MathUtils.degToRad(data.yAngle);
   }
@@ -185,7 +179,6 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
   updateTHREERobotBody(targetHeight: number, offsetHeight: number) {
     this.referencePlane.position.y = targetHeight + offsetHeight + 0.6;
   }
-
 
   adjustTHREERobotLegPosition(x: number, height: number) {
     const leg = this.scene.children.find(
@@ -252,7 +245,7 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
 
   updateTHREERobotLegServos(leg: THREE.Group, height: number) {
     const THREEServo = leg.children.find(
-      (child) =>
+      (child:any) =>
         child instanceof THREE.Mesh &&
         child.geometry.type === 'CylinderGeometry'
     );

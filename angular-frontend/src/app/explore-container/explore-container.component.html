@@ -7,41 +7,41 @@
 
   <ion-grid>
     <ion-row>
-      <!-- Three.js Canvas on the left side -->
+    
       <ion-col size="6">
         <app-threejs
           [adjustTHREERobotHeightValue]="adjustTHREERobotHeightValue"
           [updateTHREERobotTiltValue]="updateTHREERobotTiltValue"
           [updateTHREERobotMotorPWMValue]="updateTHREERobotMotorPWMValue"
           [updateTHREERobotWheelMovementValue]="updateTHREERobotWheelMovementValue"
-        ></app-threejs>
+        ></app-threejs> 
       </ion-col>
 
       <ion-col size="6">
         <app-control
-          [Kp]="Kp"
-          [Ki]="Ki"
-          [Kd]="Kd"
-          [incrementDegree]="incrementDegree"
-          [heights]="heightLevels"
+          [Kp]="config?.Kp"
+          [Ki]="config?.Ki"
+          [Kd]="config?.Kd"
+          [incrementDegree]="config?.incrementDegree"
+          [heights]="levelsArray"
+          [isSensorAdjustmentEnabled]="config?.isSensorAdjustmentEnabled"
           [heightLevelIndex]="heightLevelIndex"
-          [isSensorAdjustmentEnabled]="isSensorAdjustmentEnabled"
-          (heightChanged)="onHeightChanged($event)"
-          (sensorToggled)="onSensorToggled($event)"
-
+          
           (KpChanged)="updateKp($event)"
           (KiChanged)="updateKi($event)"
           (KdChanged)="updateKd($event)"
-
           (degreeChanged)="updateIncrementDegree($event)"
+          (heightChanged)="onHeightChanged($event)"
+          (sensorToggled)="onSensorToggled($event)"
           (stopCommand)="onStopCommand()"
           (controlCommand)="sendControlCommand($event)"
-        ></app-control>
+        ></app-control> 
+       
 
         <app-raw-data
           [accelData]="accelData"
           [tiltAngles]="tiltAngles"
-          [isSensorAdjustmentEnabled]="isSensorAdjustmentEnabled"
+          [isSensorAdjustmentEnabled]="config?.isSensorAdjustmentEnabled"
         ></app-raw-data>
 
         <app-motor-output
@@ -52,7 +52,7 @@
         ></app-motor-output>
 
         <app-console
-        [isConsoleAutoScrollEnabled]="isConsoleAutoScrollEnabled"></app-console>
+          [isConsoleAutoScrollEnabled]="isConsoleAutoScrollEnabled"></app-console>
 
       </ion-col>
     </ion-row>

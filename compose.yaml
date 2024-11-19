@@ -27,6 +27,7 @@ services:
       - config-service
     environment:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+
   pid-balance-control:
     build:
       context: ./pid-balance
