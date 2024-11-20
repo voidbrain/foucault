@@ -4,5 +4,6 @@
   "Kd": 0.4,
   "incrementDegree": 1,
   "heightLevel": "mid",
+  "heightLevels": ["low", "mid", "high"],
   "isSensorAdjustmentEnabled": true
 }

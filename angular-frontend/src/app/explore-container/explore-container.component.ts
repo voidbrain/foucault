@@ -154,28 +154,37 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   updateKp(Kp: number){
     this.config.Kp = Kp;
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setKp"], value: Kp.toString(), souce: 'Angular FE' });
+      const jsonMessage:string = JSON.stringify({ topic: this.topics.output["setKp"], value: Kp, source: 'Angular FE' })
+      console.log("-->", jsonMessage)
+      this.socket.emit('message', jsonMessage);
+      this.socket.emit('message', { topic: this.topics.output["setKp"], value: Kp, source: 'Angular FE' });
     }
   }
 
   updateKi(Ki: number){
     this.config.Ki = Ki;
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setKi"], value: Ki.toString(), souce: 'Angular FE' });
+      const jsonMessage = JSON.stringify({ topic: this.topics.output["setKi"], value: Ki, source: 'Angular FE' })
+      console.log("-->", jsonMessage)
+      this.socket.emit('message', jsonMessage);
+      this.socket.emit('message', { topic: this.topics.output["setKi"], value: Ki, source: 'Angular FE' });
     }
   }
 
   updateKd(Kd: number){
     this.config.Kd = Kd;
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setKd"], value: Kd.toString(), souce: 'Angular FE' });
+      const jsonMessage = JSON.stringify({ topic: this.topics.output["setKd"], value: Kd, source: 'Angular FE' })
+      console.log("-->", jsonMessage)
+      this.socket.emit('message', jsonMessage);
+      this.socket.emit('message', { topic: this.topics.output["setKd"], value: Kd, source: 'Angular FE' });
     }
   }
 
   updateIncrementDegree(incrementDegree: number){
     this.config.incrementDegree = incrementDegree;
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setincrementDegree"], value: incrementDegree.toString(), souce: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output["setincrementDegree"], value: incrementDegree.toString(), source: 'Angular FE' });
     }
   }
 
@@ -325,7 +334,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   sendControlCommand(command: string) {
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: command, souce: 'Angular FE' });
+      this.socket.emit('message', { topic: command, source: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }
@@ -335,13 +344,13 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
     if (this.socket !== null) {
       switch(height) {
         case 'low':
-          this.socket.emit('message', { topic: this.topics.output["setHeightLow"], souce: 'Angular FE' });
+          this.socket.emit('message', { topic: this.topics.output["setHeightLow"], source: 'Angular FE' });
           break;
         case 'mid':
-          this.socket.emit('message', { topic: this.topics.output["setHeightMid"], souce: 'Angular FE' });
+          this.socket.emit('message', { topic: this.topics.output["setHeightMid"], source: 'Angular FE' });
           break;
         case 'high':
-          this.socket.emit('message', { topic: this.topics.output["setHeightHigh"], souce: 'Angular FE' });
+          this.socket.emit('message', { topic: this.topics.output["setHeightHigh"], source: 'Angular FE' });
           break;
       }
 
@@ -352,7 +361,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   sendStopCommand() {
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["stop"], souce: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output["stop"], source: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }
@@ -360,7 +369,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   sendEnableSensorCommand(topic: string) {
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: topic, souce: 'Angular FE' });
+      this.socket.emit('message', { topic: topic, source: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }

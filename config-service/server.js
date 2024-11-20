@@ -95,30 +95,47 @@ mqttClient.on('message', (topic, message) => {
       message = 'HIGH'
       break;
     case topics.input.enableSensorAdjustementsTrue:
-      param = 'heightLevel';
+      param = 'isSensorAdjustmentEnabled';
       message = true;
       break;
     case topics.input.enableSensorAdjustementsFalse:
-      param = 'heightLevel';
+      param = 'isSensorAdjustmentEnabled';
       message = false;
       break;
   }
   
-  const value = parseFloat(message.toString());
+  const value = message.toString();
+  
+  
 
-  console.log(message, param, config, value);
+  try {
+    // Parse the incoming message as JSON
+    const parsedMessage = JSON.parse(message.toString());
+    console.log('Parsed message:', parsedMessage);
+
+    // Access properties in the parsed object
+    const { Kp, Ki, Kd, heightLevel, enableSensorAdjustementsTrue, incrementDegree } = parsedMessage;
+    console.log('Kp:', Kp, 'Ki:', Ki, 'Kd:', Kd, "IncrementDegree:", incrementDegree,
+      'Height Level:', heightLevel, "Enable Sensor Adjustements:", enableSensorAdjustementsTrue);
+
+  } catch (error) {
+    // Handle JSON parsing errors
+    console.error('Error parsing message:', error.message);
+    console.log('Raw message:', message.toString());
+  }
 
   // Update config if valid value and save to file
-  if (config.hasOwnProperty(param) && !isNaN(value)) {
+  if (config.hasOwnProperty(param)) {
     config[param] = value;
     saveConfig();
-    console.log(`Updated ${param} to ${value}`);
   }
 });
 
 // Save config to file
 const saveConfig = () => {
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf-8');
+  
+  console.log(config);
 };
 
 // Endpoint to get the current config
