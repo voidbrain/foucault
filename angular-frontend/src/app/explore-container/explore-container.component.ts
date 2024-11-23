@@ -170,6 +170,29 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  onServoLeftChanged(value: number){
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output["setServoLeft"], value: value.toString(), source: 'Angular FE' });
+    }
+  }
+
+  onServoRightChanged(value: number){
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output["setServoRight"], value: value.toString(), source: 'Angular FE' });
+    }
+  }
+
+  onMotorLeftChanged(value: number){
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output["setMotorLeft"], value: value.toString(), source: 'Angular FE' });
+    }
+  }
+
+  onMotorRightChanged(value: number){
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output["setMotorRight"], value: value.toString(), source: 'Angular FE' });
+    }
+  }
 
   startCAMERAObjectDetection() {
     if (this.socket !== null) {

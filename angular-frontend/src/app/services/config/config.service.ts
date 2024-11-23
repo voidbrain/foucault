@@ -44,6 +44,12 @@ export class ConfigService {
       setKi: "pid/set/Ki",
       setKd: "pid/set/Kd",
       setincrementDegree: "pid/set/increment",
+      
+      setServoRight:  "controller/servoPulseWidth/setServoRight",
+      setServoLeft: "controller/servoPulseWidth/setServoLeft",
+      setMotorRight:  "controller/motorPWM/setMotorRight",
+      setMotorLeft: "controller/motorPWM/setMotorLeft"
+      
     }
   };
 
