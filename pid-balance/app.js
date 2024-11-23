@@ -328,6 +328,10 @@ function updateMotors(leftOutput, rightOutput) {
   });
 }
 
+function toBoolean(value) {
+  return value === "true";
+}
+
 function adjustServos(xAngle) {
   // Base pulse width for the current height level
   const basePulseWidth = heightLevels[heightLevel]?.basePulseWidth;
@@ -378,8 +382,8 @@ setInterval(async () => {
   integralRight = pidRight.integral;
 
   sendMQTTMessage(topics.output.tiltAngles, { tiltAngles, source: "pid" });
-  
-  if (sensorAdjustmentsEnabled) {
+  const isSensorAdjustmentEnabled = toBoolean(sensorAdjustmentsEnabled);
+  if (isSensorAdjustmentEnabled) {
     updateMotors(pidLeft.output, pidRight.output);
     adjustServos(tiltAngles.xAngle);
   }
