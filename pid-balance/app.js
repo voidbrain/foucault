@@ -123,11 +123,8 @@ function initializePID(config) {
   console.log('Initializing PID controller with config:', config);
 
   if(config.Kp){ Kp = config.Kp }
-  if(config.Kp){ Ki = config.Ki }
-  if(config.Kp){ Kd = config.Kd }
-  if(config.Kp){ Ki = config.Ki }
-  if(config.Kp){ Ki = config.Ki }
-  if(config.Kp){ Ki = config.Ki }
+  if(config.Ki){ Ki = config.Ki }
+  if(config.Kd){ Kd = config.Kd }
   if(config.incrementDegree){ incrementDegree = config.incrementDegree }
   if(config.heightLevel){ heightLevel = config.heightLevel }
   if(config.isSensorAdjustmentEnabled){ isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled }
