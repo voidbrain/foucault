@@ -138,7 +138,8 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   async getConfig(){
     this.config = await this.configService.getConfig();
     this.levelsArray = Object.values(this.config.heightLevels);
-    this.heightLevelIndex = this.config?.heightLevels.findIndex((level:any) => level === this.config.heightLevel)
+    this.heightLevelIndex = this.config?.heightLevels.findIndex((level:any) => level === this.config.heightLevel);
+    this.adjustTHREERobotHeightValue = this.config.heightLevel;
   }
 
   updateKp(Kp: number){
@@ -228,8 +229,10 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
           this.handleConsoleMessage(topic, parsedMessage.message, parsedMessage.source);
           break;
         case this.topics.input["setHeight"] :
-          parsedMessage = data;
-          this.adjustTHREERobotHeightValue = parsedMessage.value;
+          parsedMessage = data.toString();
+          console.log(data)
+          this.adjustTHREERobotHeightValue = parsedMessage;
+          console.log(this.adjustTHREERobotHeightValue)
         break;
         case this.topics.input["enableSensorAdjustements"]:
           parsedMessage = JSON.parse(data);

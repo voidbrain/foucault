@@ -8,6 +8,7 @@ import {
   Input,
 } from '@angular/core';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 @Component({
   selector: 'app-threejs',
@@ -48,7 +49,6 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
   ngAfterViewInit() {
     this.setupThreeJS();
     this.animateTHREEScene();
-    this.adjustTHREERobotHeight('mid');
   }
 
   ngOnChanges(change:SimpleChanges) {
@@ -105,6 +105,35 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
     }
   }
 
+  // setupThreeJS() {
+  //   this.scene = new THREE.Scene();
+  //   this.camera = new THREE.PerspectiveCamera(
+  //     75,
+  //     window.innerWidth / window.innerHeight,
+  //     0.1,
+  //     1000
+  //   );
+  //   this.renderer = new THREE.WebGLRenderer();
+
+  //   const container = this.threejsContainer?.nativeElement;
+  //   if (container) {
+  //     const width = 800;
+  //     const height = 500;
+  //     this.renderer.setSize(width, height);
+  //     container.appendChild(this.renderer.domElement);
+  //   }
+
+  //   this.referencePlane = new THREE.Mesh(
+  //     new THREE.PlaneGeometry(2, 1),
+  //     new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide })
+  //   );
+  //   this.referencePlane.position.set(0, 1.6, 0);
+  //   this.referencePlane.rotation.x = Math.PI / 2;
+  //   this.scene.add(this.referencePlane);
+
+  //   this.camera.position.z = 5;
+  // }
+
   setupThreeJS() {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
@@ -131,7 +160,84 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
     this.referencePlane.rotation.x = Math.PI / 2;
     this.scene.add(this.referencePlane);
 
-    this.camera.position.z = 5;
+    this.addTHREERobotWheel(-1.2, -0.4, -0.2);
+    this.addTHREERobotWheel(1.2, -0.4, -0.2);
+
+    this.addTHREERobotLeg(-1, -1.2, 0, 0);
+    this.addTHREERobotLeg(1, 1.2, 0, 0);
+
+    this.camera.position.set(-2, 2, 3);
+
+    const controls = new OrbitControls(this.camera, this.renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.25;
+    controls.screenSpacePanning = false;
+    controls.maxPolarAngle = Math.PI / 2;
+
+    this.addTHREERobotGrid();
+    this.animateTHREERobot();
+  }
+
+  addTHREERobotWheel(x: number, y: number, z: number) {
+    const wheel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
+      new THREE.MeshBasicMaterial({ color: 0x0000ff })
+    );
+    wheel.position.set(x, y, z);
+    wheel.rotation.x = Math.PI / 2;
+    wheel.rotation.z = Math.PI / 2;
+    this.scene.add(wheel);
+  }
+
+  addTHREERobotLeg(name: number, x: number, y: number, z: number) {
+    const leg = new THREE.Group();
+
+    const thighUp = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.8, 0.2),
+      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+    );
+    thighUp.position.set(0, 0.7, -0.3);
+    thighUp.rotation.x = Math.PI / 4;
+    leg.add(thighUp);
+
+    const thighDown = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.6, 0.1),
+      new THREE.MeshBasicMaterial({ color: 0xffd700 })
+    );
+    thighDown.position.set(0, 1.2, -0.4);
+    thighDown.rotation.x = Math.PI / 5;
+    leg.add(thighDown);
+
+    const shin = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.8, 0.2),
+      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+    );
+    shin.position.set(0, 0, 0);
+    shin.rotation.x = -(Math.PI / 4);
+    leg.add(shin);
+
+    const servo = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.1, 0.1, 0.2, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffff00 })
+    );
+    servo.position.set(0, 1, 0);
+    servo.rotation.z = Math.PI / 2;
+    leg.add(servo);
+
+    leg.position.set(x, y, z);
+    leg.name = `leg-${name}`; // Assign unique name
+    this.scene.add(leg);
+  }
+
+  addTHREERobotGrid() {
+    const gridHelper = new THREE.GridHelper(10, 10);
+    gridHelper.position.y = -1;
+    this.scene.add(gridHelper);
+  }
+
+  animateTHREERobot() {
+    requestAnimationFrame(this.animateTHREERobot.bind(this));
+    this.renderer.render(this.scene, this.camera);
   }
 
   animateTHREEScene() {
@@ -262,67 +368,5 @@ export class ThreejsComponent implements AfterViewInit, OnChanges {
           break;
       }
     }
-  }
-
-  addTHREERobotWheel(x: number, y: number, z: number) {
-    const wheel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32),
-      new THREE.MeshBasicMaterial({ color: 0x0000ff })
-    );
-    wheel.position.set(x, y, z);
-    wheel.rotation.x = Math.PI / 2;
-    wheel.rotation.z = Math.PI / 2;
-    this.scene.add(wheel);
-  }
-
-  addTHREERobotLeg(name: number, x: number, y: number, z: number) {
-    const leg = new THREE.Group();
-
-    const thighUp = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.8, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    thighUp.position.set(0, 0.7, -0.3);
-    thighUp.rotation.x = Math.PI / 4;
-    leg.add(thighUp);
-
-    const thighDown = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.6, 0.1),
-      new THREE.MeshBasicMaterial({ color: 0xffd700 })
-    );
-    thighDown.position.set(0, 1.2, -0.4);
-    thighDown.rotation.x = Math.PI / 5;
-    leg.add(thighDown);
-
-    const shin = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.8, 0.2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    shin.position.set(0, 0, 0);
-    shin.rotation.x = -(Math.PI / 4);
-    leg.add(shin);
-
-    const servo = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.1, 0.1, 0.2, 16),
-      new THREE.MeshBasicMaterial({ color: 0xffff00 })
-    );
-    servo.position.set(0, 1, 0);
-    servo.rotation.z = Math.PI / 2;
-    leg.add(servo);
-
-    leg.position.set(x, y, z);
-    leg.name = `leg-${name}`; // Assign unique name
-    this.scene.add(leg);
-  }
-
-  addTHREERobotGrid() {
-    const gridHelper = new THREE.GridHelper(10, 10);
-    gridHelper.position.y = -1;
-    this.scene.add(gridHelper);
-  }
-
-  animateTHREERobot() {
-    requestAnimationFrame(this.animateTHREERobot.bind(this));
-    this.renderer.render(this.scene, this.camera);
   }
 }
