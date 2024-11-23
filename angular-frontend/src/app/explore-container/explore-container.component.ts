@@ -77,11 +77,6 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   private topics!: TopicsInterface;
 
-  walkForwardActive = false;
-  walkBackwardActive = false;
-  walkLeftActive = false;
-  walkRightActive = false;
-
   constructor(
     private cdr: ChangeDetectorRef,
     private configService: ConfigService
@@ -96,30 +91,30 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
     document.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
-      let command;
-
+      const command = "walk";
+      let direction
       switch (key) {
           case 'w':
           case "ArrowUp":
-              command = "forward";
+              direction = "forward";
               break;
           case 'a':
           case "ArrowLeft":
-              command = "left";
+              direction = "left";
               break;
           case 's':
           case "ArrowDown":
-              command = "backward";
+              direction = "backward";
               break;
           case 'd':
           case "ArrowRight":
-              command = "right";
+              direction = "right";
               break;
           default:
               return; // Ignore other keys
       }
 
-      this.sendControlCommand(command);
+      this.sendControlCommand(command, direction);
     });
   }
 
@@ -132,11 +127,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   onSensorToggled(isEnabled: boolean) {
     const isEnabledBoolean: boolean = isEnabled;
     this.config.isSensorAdjustmentEnabled = isEnabledBoolean;
-    if(isEnabled === true) {
-      this.sendEnableSensorCommand(this.topics.output["enableSensorAdjustementsTrue"]);
-    } else {
-      this.sendEnableSensorCommand(this.topics.output["enableSensorAdjustementsFalse"]);
-    }
+    this.sendEnableSensorCommand(this.topics.output["enableSensorAdjustements"], isEnabled);
   }
 
   onStopCommand() {
@@ -146,38 +137,28 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   async getConfig(){
     this.config = await this.configService.getConfig();
-    console.log(this.config)
-    this.levelsArray = Object.keys(this.config.heightLevels);
+    this.levelsArray = Object.values(this.config.heightLevels);
     this.heightLevelIndex = this.config?.heightLevels.findIndex((level:any) => level === this.config.heightLevel)
   }
 
   updateKp(Kp: number){
     this.config.Kp = Kp;
     if (this.socket !== null) {
-      const jsonMessage:string = JSON.stringify({ topic: this.topics.output["setKp"], value: Kp, source: 'Angular FE' })
-      console.log("-->", jsonMessage)
-      this.socket.emit('message', jsonMessage);
-      this.socket.emit('message', { topic: this.topics.output["setKp"], value: Kp, source: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output["setKp"], value: Kp.toString(), souce: 'Angular FE' });
     }
   }
 
   updateKi(Ki: number){
     this.config.Ki = Ki;
     if (this.socket !== null) {
-      const jsonMessage = JSON.stringify({ topic: this.topics.output["setKi"], value: Ki, source: 'Angular FE' })
-      console.log("-->", jsonMessage)
-      this.socket.emit('message', jsonMessage);
-      this.socket.emit('message', { topic: this.topics.output["setKi"], value: Ki, source: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output["setKi"], value: Ki.toString(), souce: 'Angular FE' });
     }
   }
 
   updateKd(Kd: number){
     this.config.Kd = Kd;
     if (this.socket !== null) {
-      const jsonMessage = JSON.stringify({ topic: this.topics.output["setKd"], value: Kd, source: 'Angular FE' })
-      console.log("-->", jsonMessage)
-      this.socket.emit('message', jsonMessage);
-      this.socket.emit('message', { topic: this.topics.output["setKd"], value: Kd, source: 'Angular FE' });
+      this.socket.emit('message', { topic: this.topics.output["setKd"], value: Kd.toString(), souce: 'Angular FE' });
     }
   }
 
@@ -198,7 +179,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   }
   setupSocket() {
     if (this.socket === null) {
-      this.socket = io('http://foucault:8080'); // Make sure this URL is correct
+      this.socket = io('http://foucault:8080');
     }
 
     this.socket.on('connect', () => {
@@ -211,77 +192,64 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
         data,
       } = message;
       let parsedMessage;
-      if(data) {
-        parsedMessage = JSON.parse(data);
-      }
-
+      
       switch (topic) {
         case this.topics.input["accelData"]:
+          parsedMessage = JSON.parse(data);
           this.handleAccelData(parsedMessage as { accelData:  { accelX:number, accelY:number, accelZ:number }});
           break;
 
         case this.topics.input["tiltAngles"]:
-          this.handleTiltAngles(parsedMessage.tiltAngles as { xAngle:number, yAngle:number }); // Access tiltAngles directly
+          parsedMessage = JSON.parse(data);
+          this.handleTiltAngles(parsedMessage.tiltAngles as { xAngle:number, yAngle:number });
           break;
 
         case this.topics.input["motorLeft"]:
+          parsedMessage = JSON.parse(data);
           this.leftMotorPWM = parsedMessage
           break;
 
         case this.topics.input["motorRight"]:
+          parsedMessage = JSON.parse(data);
           this.rightMotorPWM = parsedMessage
           break;
 
         case this.topics.input["servoLeft"]:
+          parsedMessage = JSON.parse(data);
           this.leftServoPulse = parsedMessage;
           break;
 
         case this.topics.input["servoRight"]:
+          parsedMessage = JSON.parse(data);
           this.rightServoPulse = parsedMessage;
           break;
-
         case this.topics.input["console"]:
-          this.handleConsoleMessage(topic, parsedMessage.message, parsedMessage.source); // Access message content directly
+          parsedMessage = JSON.parse(data);
+          this.handleConsoleMessage(topic, parsedMessage.message, parsedMessage.source);
           break;
-
-        case this.topics.input["walkForward"]:
-          this.walkForwardActive = true;
-          break;
-        case this.topics.input["walkBackward"]:
-          this.walkBackwardActive = true;
-          break;
-        case this.topics.input["walkLeft"]:
-          this.walkLeftActive = true;
-          break;
-        case this.topics.input["walkRight"]:
-          this.walkRightActive = true;
-          break;
-        case this.topics.input["setHeightLow"] :
-          this.adjustTHREERobotHeightValue = this.levelsArray[0];
+        case this.topics.input["setHeight"] :
+          parsedMessage = data;
+          this.adjustTHREERobotHeightValue = parsedMessage.value;
         break;
-        case this.topics.input["setHeightMid"] :
-          this.adjustTHREERobotHeightValue = this.levelsArray[1];
-        break;
-        case this.topics.input["setHeightHigh"]:
-          this.adjustTHREERobotHeightValue = this.levelsArray[2];
-        break;
-        case this.topics.input["enableSensorAdjustementsTrue"]:
-          this.config.isSensorAdjustmentEnabled = true;
-          break;
-        case this.topics.input["enableSensorAdjustementsFalse"]:
-          this.config.isSensorAdjustmentEnabled = false;
+        case this.topics.input["enableSensorAdjustements"]:
+          parsedMessage = JSON.parse(data);
+          this.config.isSensorAdjustmentEnabled = parsedMessage;
           break;
         case this.topics.input["setKp"]:
-            this.config.Kp = parsedMessage.value;
+            parsedMessage = JSON.parse(data);
+            this.config.Kp = +parsedMessage;
           break;
         case this.topics.input["setKi"]:
-            this.config.Ki = parsedMessage.value;
+            parsedMessage = JSON.parse(data);
+            this.config.Ki = +parsedMessage;
           break;
         case this.topics.input["setKd"]:
-            this.config.Kd = parsedMessage.value;
+            parsedMessage = JSON.parse(data);
+            this.config.Kd = +parsedMessage;
           break;
         case this.topics.input["setincrementDegree"]:
-            this.config.incrementDegree = parsedMessage.value;
+            parsedMessage = JSON.parse(data);
+            this.config.incrementDegree = +parsedMessage;
           break;
         default:
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
@@ -319,7 +287,6 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   }
 
   updateConsoleTiltAngles(data: { xAngle: number; yAngle: number }) {
-    console.log(data)
     if(data){
       document.getElementById(
         'tiltAngles-content'
@@ -332,9 +299,14 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
     this.updateTHREERobotMotorPWMValue = {wheel, data}
   }
 
-  sendControlCommand(command: string) {
+  onWalkCommand(direction: string){
+    const command = this.topics.output['walk'];
+    this.sendControlCommand(command, direction);
+  }
+
+  sendControlCommand(command: string, direction: string) {
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: command, source: 'Angular FE' });
+      this.socket.emit('message', { topic: command, value: direction,source: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }
@@ -342,17 +314,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   sendSetHeightCommand(height: string) {
     if (this.socket !== null) {
-      switch(height) {
-        case 'low':
-          this.socket.emit('message', { topic: this.topics.output["setHeightLow"], source: 'Angular FE' });
-          break;
-        case 'mid':
-          this.socket.emit('message', { topic: this.topics.output["setHeightMid"], source: 'Angular FE' });
-          break;
-        case 'high':
-          this.socket.emit('message', { topic: this.topics.output["setHeightHigh"], source: 'Angular FE' });
-          break;
-      }
+        this.socket.emit('message', { topic: this.topics.output["setHeight"], value: height, source: 'Angular FE' });
 
     } else {
       console.warn('Socket is null');
@@ -367,9 +329,9 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  sendEnableSensorCommand(topic: string) {
+  sendEnableSensorCommand(topic: string, isEnabled: boolean) {
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: topic, source: 'Angular FE' });
+      this.socket.emit('message', { topic: topic, value:isEnabled.toString(),  source: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }
@@ -377,7 +339,6 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   logToConsole(topic: string, message: string, source: string) {
     if (this.consoleComponent) {
-       // Pass the message to the child component
       this.consoleComponent.handleConsoleMessage(topic, message, source);
     }
   }

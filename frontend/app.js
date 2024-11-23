@@ -39,20 +39,14 @@ const topics = {
     motorRight: 'controller/motorPWM/right',
     servoLeft: 'controller/servoPulseWidth/left',
     servoRight: 'controller/servoPulseWidth/right',
-
-    walkForward: "pid/move/forward",
-    walkBackward: "pid/move/backward",
-    walkLeft: "pid/move/left",
-    walkRight: "pid/move/right",
-    setHeightLow: "pid/set/height/low",
-    setHeightMid: "pid/set/height/mid",
-    setHeightHigh: "pid/set/height/high",
-    enableSensorAdjustementsTrue: "pid/sensor/enable/true",
-    enableSensorAdjustementsFalse: "pid/sensor/enable/false",
     setKp: "pid/set/Kp",
     setKi: "pid/set/Ki",
     setKd: "pid/set/Kd",
     setIncrementDegree: "pid/set/increment",
+
+    walk: "pid/move",
+    setHeight: "pid/set/height",
+    enableSensorAdjustements: "pid/sensor/enable",
   },
 };
 
@@ -68,10 +62,13 @@ Object.keys(topics.input).forEach(topic => {
 // Listen for 'mqtt-publish' events from the frontend
 io.on('connection', (socket) => {
   socket.on('message', (data) => {
-    const { topic, message } = data;
+    const { topic, value, ...source } = data;
+    if(topic === topics.input.setKd || topic === topics.input.setKi || topic === topics.input.setKp || topic === topics.input.setIncrementDegree){
+      console.log(topic, value)
+    }
 
     // Publish the message to the specified MQTT topic
-    mqttClient.publish(topic, message, (err) => {
+    mqttClient.publish(topic, value, (err) => {
       if (err) {
         console.error(`Failed to publish message to ${topic}:`, err);
       } else {

@@ -13,20 +13,20 @@ services:
       - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
     restart: unless-stopped
 
-  angular-frontend:
-    build:
-      context: ./angular-frontend
-    container_name: angular-frontend-service
-    ports:
-      - "8082:8082"
-    networks:
-      - internal-net
-      - external-net
-    depends_on:
-      - mqtt-broker
-      - config-service
-    environment:
-      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+  # angular-frontend:
+  #   build:
+  #     context: ./angular-frontend
+  #   container_name: angular-frontend-service
+  #   ports:
+  #     - "8082:8082"
+  #   networks:
+  #     - internal-net
+  #     - external-net
+  #   depends_on:
+  #     - mqtt-broker
+  #     - config-service
+  #   environment:
+  #     - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
 
   pid-balance-control:
     build:

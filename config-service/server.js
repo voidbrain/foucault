@@ -43,11 +43,8 @@ const topics = {
     setKi: "pid/set/Ki",
     setKd: "pid/set/Kd",
     setIncrementDegree: "pid/set/increment",
-    setHeightLow: "pid/set/height/low",
-    setHeightMid: "pid/set/height/mid",
-    setHeightHigh: "pid/set/height/high",
-    enableSensorAdjustementsTrue: "pid/sensor/enable/true",
-    enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+    setHeight: "pid/set/height",
+    enableSensorAdjustements: "pid/sensor/enable",
   },
 };
 
@@ -82,41 +79,25 @@ mqttClient.on('message', (topic, message) => {
     case topics.input.setIncrementDegree:
       param = 'incrementDegree';
       break;
-    case topics.input.setHeightLow:
+    case topics.input.setHeight:
       param = 'heightLevel';
-      message = 'LOW'
       break;
-    case topics.input.setHeightMid:
-      param = 'heightLevel';
-      message = 'MID'
-      break;
-    case topics.input.setHeightHigh:
-      param = 'heightLevel';
-      message = 'HIGH'
-      break;
-    case topics.input.enableSensorAdjustementsTrue:
+    case topics.input.enableSensorAdjustements:
       param = 'isSensorAdjustmentEnabled';
-      message = true;
-      break;
-    case topics.input.enableSensorAdjustementsFalse:
-      param = 'isSensorAdjustmentEnabled';
-      message = false;
       break;
   }
   
   const value = message.toString();
-  
-  
 
   try {
     // Parse the incoming message as JSON
-    const parsedMessage = JSON.parse(message.toString());
+    const parsedMessage = message.toString();
     console.log('Parsed message:', parsedMessage);
 
     // Access properties in the parsed object
-    const { Kp, Ki, Kd, heightLevel, enableSensorAdjustementsTrue, incrementDegree } = parsedMessage;
+    const { Kp, Ki, Kd, heightLevel, enableSensorAdjustements, incrementDegree } = parsedMessage;
     console.log('Kp:', Kp, 'Ki:', Ki, 'Kd:', Kd, "IncrementDegree:", incrementDegree,
-      'Height Level:', heightLevel, "Enable Sensor Adjustements:", enableSensorAdjustementsTrue);
+      'Height Level:', heightLevel, "Enable Sensor Adjustements:", enableSensorAdjustements, "parsedMessage:", parsedMessage);
 
   } catch (error) {
     // Handle JSON parsing errors

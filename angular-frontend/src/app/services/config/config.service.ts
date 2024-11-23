@@ -26,33 +26,20 @@ export class ConfigService {
       motorRight: 'controller/motorPWM/right',
       servoLeft: 'controller/servoPulseWidth/left',
       servoRight: 'controller/servoPulseWidth/right',
+      walk: "pid/move",
+      setHeight: "pid/set/height",
+      enableSensorAdjustements: "pid/sensor/enable",
 
-      walkForward: "pid/move/forward",
-      walkBackward: "pid/move/backward",
-      walkLeft: "pid/move/left",
-      walkRight: "pid/move/right",
-      setHeightLow: "pid/set/height/low",
-      setHeightMid: "pid/set/height/mid",
-      setHeightHigh: "pid/set/height/high",
-      enableSensorAdjustementsTrue: "pid/sensor/enable/true",
-      enableSensorAdjustementsFalse: "pid/sensor/enable/false",
       setKp: "pid/set/Kp",
       setKi: "pid/set/Ki",
       setKd: "pid/set/Kd",
       setincrementDegree: "pid/set/increment",
     },
     output: {
-      walkForward: "pid/move/forward",
-      walkBackward: "pid/move/backward",
-      walkLeft: "pid/move/left",
-      walkRight: "pid/move/right",
       stop: "pid/stop",
-      setHeightLow: "pid/set/height/low",
-      setHeightMid: "pid/set/height/mid",
-      setHeightHigh: "pid/set/height/high",
-
-      enableSensorAdjustementsTrue: "pid/sensor/enable/true",
-      enableSensorAdjustementsFalse: "pid/sensor/enable/false",
+      walk: "pid/move",
+      setHeight: "pid/set/height",
+      enableSensorAdjustements: "pid/sensor/enable",
       setKp: "pid/set/Kp",
       setKi: "pid/set/Ki",
       setKd: "pid/set/Kd",
@@ -68,9 +55,8 @@ export class ConfigService {
   async getConfig(): Promise<any> {
     try {
       const response = await axios.get(this.configUrl, {
-        withCredentials: true  // Include credentials (cookies, authorization headers, etc.)
+        withCredentials: true
       });
-      console.log(response)
       return response.data;
     } catch (error) {
       console.error('Error fetching config:', error);

@@ -129,7 +129,7 @@ import {
                     </ion-row>
                     <ion-row>
                       <ion-col size="12" class="ion-text-center">
-                        <ion-button (click)="sendControlCommand(topics.output['walkForward'])"
+                        <ion-button (click)="sendWalkCommand('forward')"
                         [class]="walkForwardActive ? 'pulse-effect' : ''"
                           >W</ion-button
                         >
@@ -137,19 +137,19 @@ import {
                     </ion-row>
                     <ion-row>
                       <ion-col size="4" class="ion-text-center">
-                        <ion-button (click)="sendControlCommand(topics.output['walkLeft'])"
+                        <ion-button (click)="sendWalkCommand('left')"
                         [class]="walkLeftActive ? 'pulse-effect' : ''"
                           >A</ion-button
                         >
                       </ion-col>
                       <ion-col size="4" class="ion-text-center">
-                        <ion-button (click)="sendControlCommand(topics.output['walkBackward'])"
+                        <ion-button (click)="sendWalkCommand('backward')"
                         [class]="walkBackwardActive ? 'pulse-effect' : ''"
                           >S</ion-button
                         >
                       </ion-col>
                       <ion-col size="4" class="ion-text-center">
-                        <ion-button (click)="sendControlCommand(topics.output['walkRight'])"
+                        <ion-button (click)="sendWalkCommand('right')"
                         [class]="walkRightActive ? 'pulse-effect' : ''"
                           >D</ion-button
                         >
@@ -171,7 +171,7 @@ export class ControlComponent implements AfterViewInit {
   @Output() heightChanged = new EventEmitter<number>();
   @Output() sensorToggled = new EventEmitter<boolean>();
   @Output() stopCommand = new EventEmitter<void>();
-  @Output() controlCommand = new EventEmitter<string>();
+  @Output() walkCommand = new EventEmitter<string>();
   @Output() degreeChanged = new EventEmitter<number>();
 
   @Output() KiChanged = new EventEmitter<number>();
@@ -199,8 +199,8 @@ export class ControlComponent implements AfterViewInit {
     this.topics = this.configService.getTopics();
   }
 
-  sendControlCommand(direction: string) {
-    this.controlCommand.emit(direction);
+  sendWalkCommand(direction: string) {
+    this.walkCommand.emit(direction);
   }
 
   updateKp() {
@@ -224,15 +224,11 @@ export class ControlComponent implements AfterViewInit {
   adjustHeightEventFromSlider(event: any) {
     const newValue = event.detail.value;
     this.heightLevelIndex = newValue;
-
-    console.log("adjustHeightEventFromSlider", this.heightLevelIndex)
     this.heightChanged.emit(this.heightLevelIndex);
   }
 
   toggleEnableSensor() {
-    this.isSensorAdjustmentEnabled = (this.isSensorAdjustmentEnabled === true ? false : true);
-    console.log("isSensorAdjustmentEnabled", this.isSensorAdjustmentEnabled)
-    this.sensorToggled.emit(this.isSensorAdjustmentEnabled);
+    this.sensorToggled.emit((this.isSensorAdjustmentEnabled === true ? false : true));
   }
 
   sendStopCommand() {

@@ -48,20 +48,15 @@ const topics = {
     servoRight: "controller/servoPulseWidth/right",
   },
   input: {
-    walkForward: "pid/move/forward",
-    walkBackward: "pid/move/backward",
-    walkLeft: "pid/move/left",
-    walkRight: "pid/move/right",
     stop: "pid/stop",
-    setHeightLow: "pid/set/height/low",
-    setHeightMid: "pid/set/height/mid",
-    setHeightHigh: "pid/set/height/high",
-    enableSensorAdjustementsTrue: "pid/sensor/enable/true",
-    enableSensorAdjustementsFalse: "pid/sensor/enable/false",
     setKp: "pid/set/Kp",
     setKi: "pid/set/Ki",
     setKd: "pid/set/Kd",
     setIncrementDegree: "pid/set/increment",
+
+    walk: "pid/move",
+    setHeight: "pid/set/height",
+    enableSensorAdjustements: "pid/sensor/enable",
   },
 };
 
@@ -77,35 +72,18 @@ mqttClient.on("connect", () => {
 // Message handler for subscribed topics
 mqttClient.on("message", (topic, value) => {
     switch (topic) {
-      case topics.input.walkForward:
-        handleWalk("forward");
+      
+      case topics.input.walk:
+        handleWalk(value);
         break;
-      case topics.input.walkBackward:
-        handleWalk("backward");
-        break;
-      case topics.input.walkLeft:
-        handleWalk("left");
-        break;
-      case topics.input.walkRight:
-        handleWalk("right");
+      case topics.input.enableSensorAdjustements:
+        handleSetSensorAdj(value)
         break;
       case topics.input.stop:
         handleStop();
         break;
-      case topics.input.setHeightLow:
-        handleSetHeight('low');
-        break;
-      case topics.input.setHeightMid:
-        handleSetHeight('mid');
-        break;
-      case topics.input.setHeightHigh:
-        handleSetHeight('high');
-        break;
-      case topics.input.enableSensorAdjustementsTrue:
-        handleSetSensorAdj(true)
-        break;
-      case topics.input.enableSensorAdjustementsFalse:
-        handleSetSensorAdj(false)
+      case topics.input.setHeight:
+        handleSetHeight(value);
         break;
       case topics.input.setKp:
         handleSetPIDParameter("Kp", value);
@@ -195,14 +173,14 @@ function handleSetPIDParameter(param, value) {
 
 
 function handleSetSensorAdj(value){
-  console.log("set sensor adj", value)
-  sensorAdjustmentsEnabled = value;
+  console.log("set sensor adj2: ", value.toString())
+  sensorAdjustmentsEnabled = value.toString();
 
 }
 
 // Modify the handleSetHeight function to update the current height setting
 function handleSetHeight(height) {
-  
+    console.log(`Height set to ${height}`);
     heightLevel = height;
 }
 
@@ -214,8 +192,9 @@ function handleStop() {
 
 // Function to handle walking directions
 function handleWalk(direction) {
-  console.log(`walk`, direction);
-  switch (direction) {
+  const walkDirection = direction.toString();
+  console.log(`walk`, walkDirection);
+  switch (walkDirection) {
     case "forward":
       pidControl(setpoint + incrementDegree, previousErrorLeft, integralLeft, true);
       pidControl(
