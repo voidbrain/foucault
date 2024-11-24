@@ -19,10 +19,10 @@ const topics = {
 const mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL || 'mqtt://mqtt-broker:1883');
 
 // GPIO Pins for motors and servos
-const motorLeft = new Gpio(17, { mode: Gpio.OUTPUT });
-const motorRight = new Gpio(18, { mode: Gpio.OUTPUT });
-const servoLeft = new Gpio(19, { mode: Gpio.OUTPUT });
-const servoRight = new Gpio(20, { mode: Gpio.OUTPUT });
+const motorLeft = new Gpio(7, { mode: Gpio.OUTPUT });
+const motorRight = new Gpio(8, { mode: Gpio.OUTPUT });
+const servoLeft = new Gpio(18, { mode: Gpio.OUTPUT });
+const servoRight = new Gpio(15, { mode: Gpio.OUTPUT });
 
 // Start pigpio daemon for GPIO access
 exec('pigpiod', (err, stdout, stderr) => {
@@ -57,13 +57,13 @@ function sendMQTTMessage(topic, message) {
 
 // Handle incoming MQTT messages
 mqttClient.on('message', (topic, message) => {
-  const { message: msgText, value } = JSON.parse(message.toString());
+  const value = message.toString();
   handleMqttMessage(topic, value);
 });
 
 // Function to handle commands for motors and servos
 function handleMqttMessage(topic, value) {
-  const isValidServo = value >= 500 && value <= 2500;  // Valid range for servos (in microseconds)
+  const isValidServo = value >= 500 && value <= 2500;  // Valid range for servos (in microseconds) 1500 = stop
   const isValidMotor = value >= 0 && value <= 255;    // Valid range for motor PWM
 
   switch (topic) {

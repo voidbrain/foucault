@@ -172,13 +172,17 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   onServoLeftChanged(value: number){
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setServoLeft"], value: value.toString(), source: 'Angular FE' });
+      const obj = { topic: this.topics.output["setServoLeft"], value: value.toString(), source: 'Angular FE' };
+      console.log(obj)
+      this.socket.emit('message', obj);
     }
   }
 
   onServoRightChanged(value: number){
     if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setServoRight"], value: value.toString(), source: 'Angular FE' });
+      const obj = { topic: this.topics.output["setServoRight"], value: value.toString(), source: 'Angular FE' };
+      console.log(obj)
+      this.socket.emit('message', obj);
     }
   }
 

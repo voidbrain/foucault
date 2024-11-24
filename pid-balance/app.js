@@ -183,8 +183,16 @@ function handleSetHeight(height) {
 
 function handleStop() {
   console.log(`stop`);
-  pidControl(setpoint, previousErrorLeft, integralLeft, true);
-  pidControl(setpoint, previousErrorRight, integralRight, false);
+  // pidControl(setpoint, previousErrorLeft, integralLeft, true);
+  // pidControl(setpoint, previousErrorRight, integralRight, false);
+  sendMQTTMessage(topics.output.servoRight, {
+    source: "pid",
+    value: 1500,
+  });
+  sendMQTTMessage(topics.output.servoLeft, {
+    source: "pid",
+    value: 1500,
+  });
 }
 
 // Function to handle walking directions

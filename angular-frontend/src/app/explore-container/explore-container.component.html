@@ -36,10 +36,10 @@
           (stopCommand)="onStopCommand()"
           (walkCommand)="onWalkCommand($event)"
 
-          servoLeftChanged="onServoLeftChanged($event)"
-          servoRightChanged="onServoRightChanged($event)"
-          motorLeftChanged="onMotorLeftChanged($event)"
-          motorRightChanged="onMotorRightChanged($event)"
+          (servoLeftChanged)="onServoLeftChanged($event)"
+          (servoRightChanged)="onServoRightChanged($event)"
+          (motorLeftChanged)="onMotorLeftChanged($event)"
+          (motorRightChanged)="onMotorRightChanged($event)"
         ></app-control> 
        
 
