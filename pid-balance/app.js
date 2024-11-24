@@ -24,7 +24,7 @@ const PWR_MGMT_1 = 0x6b;
 const ACCEL_XOUT_H = 0x3b;
 
 // Flag for sensor adjustments
-let sensorAdjustmentsEnabled = true;
+let isSensorAdjustmentEnabled = true;
 
 // Define pulse width ranges for height levels
 const heightLevels = {
@@ -32,6 +32,8 @@ const heightLevels = {
   mid: { basePulseWidth: 1500 },
   high: { basePulseWidth: 2500 },
 };
+
+let controlLoopInterval = null;
 
 // Current height setting, default to 'mid'
 let heightLevel = "mid";
@@ -49,6 +51,7 @@ const topics = {
   },
   input: {
     stop: "pid/stop",
+    start: "pid/start",
     setKp: "pid/set/Kp",
     setKi: "pid/set/Ki",
     setKd: "pid/set/Kd",
@@ -81,6 +84,9 @@ mqttClient.on("message", (topic, value) => {
         break;
       case topics.input.stop:
         handleStop();
+        break;
+      case topics.input.start:
+        handleStart();
         break;
       case topics.input.setHeight:
         handleSetHeight(value);
@@ -127,7 +133,10 @@ function initializePID(config) {
   if(config.Kd){ Kd = config.Kd }
   if(config.incrementDegree){ incrementDegree = config.incrementDegree }
   if(config.heightLevel){ heightLevel = config.heightLevel }
-  if(config.isSensorAdjustmentEnabled){ isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled }
+  if(config.isSensorAdjustmentEnabled){ isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled 
+
+    console.log(1, isSensorAdjustmentEnabled, typeof isSensorAdjustmentEnabled);
+  }
 }
 
 // Fetch config and start the application
@@ -170,8 +179,9 @@ function handleSetPIDParameter(param, value) {
 
 
 function handleSetSensorAdj(value){
-  console.log("set sensor adj2: ", value.toString())
-  sensorAdjustmentsEnabled = value.toString();
+  const stringValue = value.toString();
+  isSensorAdjustmentEnabled = toBoolean(stringValue);
+  console.log(3, isSensorAdjustmentEnabled, typeof isSensorAdjustmentEnabled);
 
 }
 
@@ -181,18 +191,56 @@ function handleSetHeight(height) {
     heightLevel = height;
 }
 
+function handleStart() {
+  console.log(`start`);
+  // Avoid multiple intervals being set
+  if (controlLoopInterval) {
+    console.warn("Control loop is already running.");
+    return;
+  }
+  controlLoopInterval = setInterval(async () => {
+    const tiltAngles = await getTiltAngles();
+    const pidLeft = pidControl(
+      tiltAngles.xAngle,
+      previousErrorLeft,
+      integralLeft,
+      true
+    );
+    const pidRight = pidControl(
+      tiltAngles.yAngle,
+      previousErrorRight,
+      integralRight,
+      false
+    );
+  
+    previousErrorLeft = pidLeft.previousError;
+    integralLeft = pidLeft.integral;
+    previousErrorRight = pidRight.previousError;
+    integralRight = pidRight.integral;
+  
+    sendMQTTMessage(topics.output.tiltAngles, { tiltAngles, source: "pid" });
+    
+    if (isSensorAdjustmentEnabled === true) {
+      updateMotors(pidLeft.output, pidRight.output);
+      adjustServos(tiltAngles.xAngle);
+    } else {
+      handleStop();
+    }
+  }, 200);
+}
+
 function handleStop() {
   console.log(`stop`);
   // pidControl(setpoint, previousErrorLeft, integralLeft, true);
   // pidControl(setpoint, previousErrorRight, integralRight, false);
-  sendMQTTMessage(topics.output.servoRight, {
-    source: "pid",
-    value: 1500,
-  });
-  sendMQTTMessage(topics.output.servoLeft, {
-    source: "pid",
-    value: 1500,
-  });
+
+  if (controlLoopInterval) {
+    clearInterval(controlLoopInterval); // Stop the interval
+    controlLoopInterval = null; // Reset the interval reference
+  }
+
+  sendMQTTMessage(topics.output.servoRight, 1500); // Stop servos
+  sendMQTTMessage(topics.output.servoLeft, 1500);
 }
 
 // Function to handle walking directions
@@ -355,44 +403,12 @@ function adjustServos(xAngle) {
   );
 
   // Publish servo pulse width values via MQTT
-  sendMQTTMessage(topics.output.servoLeft, {
-    source: "pid",
-    value: leftPulseWidth,
-  });
-  sendMQTTMessage(topics.output.servoRight, {
-    source: "pid",
-    value: rightPulseWidth,
-  });
+  sendMQTTMessage(topics.output.servoLeft, leftPulseWidth);
+  sendMQTTMessage(topics.output.servoRight, rightPulseWidth);
 }
 
 // Run control loop at regular intervals (e.g., 200ms)
-setInterval(async () => {
-  const tiltAngles = await getTiltAngles();
-  const pidLeft = pidControl(
-    tiltAngles.xAngle,
-    previousErrorLeft,
-    integralLeft,
-    true
-  );
-  const pidRight = pidControl(
-    tiltAngles.yAngle,
-    previousErrorRight,
-    integralRight,
-    false
-  );
-
-  previousErrorLeft = pidLeft.previousError;
-  integralLeft = pidLeft.integral;
-  previousErrorRight = pidRight.previousError;
-  integralRight = pidRight.integral;
-
-  sendMQTTMessage(topics.output.tiltAngles, { tiltAngles, source: "pid" });
-  const isSensorAdjustmentEnabled = toBoolean(sensorAdjustmentsEnabled);
-  if (isSensorAdjustmentEnabled) {
-    updateMotors(pidLeft.output, pidRight.output);
-    adjustServos(tiltAngles.xAngle);
-  }
-}, 200);
+handleStart();
 
 // Initialize MPU6050
 wakeUpMPU6050();

@@ -37,6 +37,7 @@ export class ConfigService {
     },
     output: {
       stop: "pid/stop",
+      start: "pid/start",
       walk: "pid/move",
       setHeight: "pid/set/height",
       enableSensorAdjustements: "pid/sensor/enable",

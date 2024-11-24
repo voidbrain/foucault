@@ -135,6 +135,11 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
     this.sendStopCommand();
   }
 
+  onStartCommand() {
+    console.log('Start command received!');
+    this.sendStartCommand();
+  }
+
   async getConfig(){
     this.config = await this.configService.getConfig();
     this.levelsArray = Object.values(this.config.heightLevels);
@@ -354,6 +359,14 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   sendStopCommand() {
     if (this.socket !== null) {
       this.socket.emit('message', { topic: this.topics.output["stop"], source: 'Angular FE' });
+    } else {
+      console.warn('Socket is null');
+    }
+  }
+
+  sendStartCommand() {
+    if (this.socket !== null) {
+      this.socket.emit('message', { topic: this.topics.output["start"], source: 'Angular FE' });
     } else {
       console.warn('Socket is null');
     }

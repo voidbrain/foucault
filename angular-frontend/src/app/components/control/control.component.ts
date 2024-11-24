@@ -76,8 +76,9 @@ import {
               >
                 Enable Sensor Adjustments
               </ion-toggle>
-
-              <ion-button (click)="sendStopCommand()">Stop</ion-button>
+              
+              <ion-button *ngIf="isStopEnabled === true" (click)="sendStopCommand()">Stop</ion-button>
+              <ion-button *ngIf="isStopEnabled === false" (click)="sendStartCommand()">Start</ion-button>
             </ion-col>
             <ion-col size="6">
               <ion-grid>
@@ -215,6 +216,7 @@ export class ControlComponent implements AfterViewInit {
   @Output() heightChanged = new EventEmitter<number>();
   @Output() sensorToggled = new EventEmitter<boolean>();
   @Output() stopCommand = new EventEmitter<void>();
+  @Output() startCommand = new EventEmitter<void>();
   @Output() walkCommand = new EventEmitter<string>();
   @Output() degreeChanged = new EventEmitter<number>();
 
@@ -236,6 +238,8 @@ export class ControlComponent implements AfterViewInit {
   motorRight: number = 0;
   servoLeft: number = 0;
   servoRight: number = 0;
+
+  isStopEnabled:boolean = true;
 
   walkForwardActive: boolean = false;
   walkLeftActive: boolean = false;
@@ -298,6 +302,11 @@ export class ControlComponent implements AfterViewInit {
   }
 
   sendStopCommand() {
+    this.isStopEnabled = false;
     this.stopCommand.emit();
+  }
+  sendStartCommand() {
+    this.isStopEnabled = true;
+    this.startCommand.emit();
   }
 }
