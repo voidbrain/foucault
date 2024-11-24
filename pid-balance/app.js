@@ -1,6 +1,6 @@
 const i2c = require("i2c");
 const mqtt = require("mqtt");
-const axios = require('axios');
+const axios = require("axios");
 
 // MPU6050 and I2C setup
 const address = 0x68; // MPU6050 default I2C address
@@ -25,18 +25,27 @@ const ACCEL_XOUT_H = 0x3b;
 
 // Flag for sensor adjustments
 let isSensorAdjustmentEnabled = true;
+let heightAdjustmentInProgress = false;
 
+let currentHeight = "low"; // 'low', 'middle', 'high'
+let targetHeight = "low"; // Initial target height
+let servoAngles = { left: 0, right: 0 }; // Initial servo angles
+let servoSpeed = 5; // Servo adjustment speed (in degrees per update)
+let motorSpeed = 100; // Default motor speed
+
+const heightMap = {
+  low: 0, // Low position (0 degrees, for example)
+  middle: 10, // Middle position (10 degrees for example)
+  high: 20, // High position (20 degrees for example)
+};
 // Define pulse width ranges for height levels
 const heightLevels = {
   low: { basePulseWidth: 500 },
-  mid: { basePulseWidth: 1500 },
-  high: { basePulseWidth: 2500 },
+  mid: { basePulseWidth: 700 },
+  high: { basePulseWidth: 900 },
 };
 
 let controlLoopInterval = null;
-
-// Current height setting, default to 'mid'
-let heightLevel = "mid";
 
 // MQTT topics
 const topics = {
@@ -74,79 +83,82 @@ mqttClient.on("connect", () => {
 
 // Message handler for subscribed topics
 mqttClient.on("message", (topic, value) => {
-    switch (topic) {
-      
-      case topics.input.walk:
-        handleWalk(value);
-        break;
-      case topics.input.enableSensorAdjustements:
-        handleSetSensorAdj(value)
-        break;
-      case topics.input.stop:
-        handleStop();
-        break;
-      case topics.input.start:
-        handleStart();
-        break;
-      case topics.input.setHeight:
-        handleSetHeight(value);
-        break;
-      case topics.input.setKp:
-        handleSetPIDParameter("Kp", value);
-        break;
-      case topics.input.setKi:
-        handleSetPIDParameter("Ki", value);
-        break;
-      case topics.input.setKd:
-        handleSetPIDParameter("Kd", value);
-        break;
-      case topics.input.setIncrementDegree:
-        handleSetIncrementDegree(value);
-        break;
-    }
+  switch (topic) {
+    case topics.input.walk:
+      handleWalk(value);
+      break;
+    case topics.input.enableSensorAdjustements:
+      handleSetSensorAdj(value);
+      break;
+    case topics.input.stop:
+      handleStop();
+      break;
+    case topics.input.start:
+      handleStart();
+      break;
+    case topics.input.setHeight:
+      handleSetHeight(value);
+      break;
+    case topics.input.setKp:
+      handleSetPIDParameter("Kp", value);
+      break;
+    case topics.input.setKi:
+      handleSetPIDParameter("Ki", value);
+      break;
+    case topics.input.setKd:
+      handleSetPIDParameter("Kd", value);
+      break;
+    case topics.input.setIncrementDegree:
+      handleSetIncrementDegree(value);
+      break;
+  }
 });
 
 async function fetchConfig() {
   try {
-    console.log('Fetching configuration...');
-    const response = await axios.get('http://config-service:3004/config', {
-      withCredentials: true  // Include credentials (cookies, authorization headers, etc.)
-    }); // Replace with actual service URL
+    console.log("Fetching configuration...");
+    const response = await axios.get("http://config-service:3004/config", {
+      withCredentials: true, 
+    }); 
     const config = response.data;
-
-    console.log('Configuration fetched successfully:', config);
 
     // Use the config for initialization
     initializePID(config);
-
   } catch (error) {
-    console.error('Error fetching configuration:', error.message);
+    console.error("Error fetching configuration:", error.message);
     process.exit(1); // Exit if configuration cannot be fetched
   }
 }
 
 function initializePID(config) {
-  console.log('Initializing PID controller with config:', config);
 
-  if(config.Kp){ Kp = config.Kp }
-  if(config.Ki){ Ki = config.Ki }
-  if(config.Kd){ Kd = config.Kd }
-  if(config.incrementDegree){ incrementDegree = config.incrementDegree }
-  if(config.heightLevel){ heightLevel = config.heightLevel }
-  if(config.isSensorAdjustmentEnabled){ isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled 
-
-    console.log(1, isSensorAdjustmentEnabled, typeof isSensorAdjustmentEnabled);
+  if (config.Kp) {
+    Kp = config.Kp;
+  }
+  if (config.Ki) {
+    Ki = config.Ki;
+  }
+  if (config.Kd) {
+    Kd = config.Kd;
+  }
+  if (config.incrementDegree) {
+    incrementDegree = config.incrementDegree;
+  }
+  if (config.heightLevel) {
+    currentHeight = config.heightLevel;
+  }
+  if (config.isSensorAdjustmentEnabled) {
+    isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled;
   }
 }
 
 // Fetch config and start the application
 fetchConfig().then(() => {
-  console.log('PID Controller started');
+  console.log("PID Controller started");
 });
 
-
 function handleSetIncrementDegree(value) {
-  console.log(value)
+  console.log(value);
   if (!isNaN(value)) {
     incrementDegree = value;
     console.log(`Increment set to ${incrementDegree}`);
@@ -157,7 +169,6 @@ function handleSetIncrementDegree(value) {
 
 function handleSetPIDParameter(param, value) {
   if (!isNaN(value)) {
-
     switch (param) {
       case "Kp":
         Kp = value.toString();
@@ -177,18 +188,77 @@ function handleSetPIDParameter(param, value) {
   }
 }
 
-
-function handleSetSensorAdj(value){
+function handleSetSensorAdj(value) {
   const stringValue = value.toString();
   isSensorAdjustmentEnabled = toBoolean(stringValue);
-  console.log(3, isSensorAdjustmentEnabled, typeof isSensorAdjustmentEnabled);
-
+  if (isSensorAdjustmentEnabled === true) {
+    handleStart();
+  }
 }
 
-// Modify the handleSetHeight function to update the current height setting
+// New gradualHeightAdjustment function
+function gradualHeightAdjustment(targetHeight, duration = 2000) {
+  const targetAngle = heightMap[targetHeight]; // Target angle for the new height
+  const currentLeftAngle = servoAngles.left; // Current left servo angle
+  const currentRightAngle = servoAngles.right; // Current right servo angle
+
+  const leftAngleChange = targetAngle - currentLeftAngle; // Difference in left servo angle
+  const rightAngleChange = targetAngle - currentRightAngle; // Difference in right servo angle
+
+  const steps = Math.abs(targetAngle - (servoAngles.left || 0)) / servoSpeed; // Calculate number of steps for smooth transition
+
+  let stepCount = 0; // Track the current step
+
+  // Gradually adjust the servos over the specified duration
+  const interval = setInterval(() => {
+    // Calculate the increment for each step
+    const leftAngleIncrement = (leftAngleChange / steps);
+    const rightAngleIncrement = (rightAngleChange / steps);
+
+    // Update servo angles
+    servoAngles.left += leftAngleIncrement;
+    servoAngles.right += rightAngleIncrement;
+
+    // Apply the new servo angles to the hardware
+    setServoAngles();
+
+    stepCount++;
+
+    // If we've reached the final step, clear the interval
+    if (stepCount >= steps) {
+      clearInterval(interval);
+      heightAdjustmentInProgress = false; // Reset the flag
+      sendMQTTMessage(topics.output.console, { source: "pid", message: `Height adjustment to ${targetHeight} complete` });
+    }
+  }, duration / steps);
+}
+
+// Update handleSetHeight to use gradualHeightAdjustment
 function handleSetHeight(height) {
-    console.log(`Height set to ${height}`);
-    heightLevel = height;
+  if (heightMap[height] && !heightAdjustmentInProgress) {
+    // Mark height adjustment as in progress
+    heightAdjustmentInProgress = true;
+
+    // Set the new target height
+    targetHeight = height;
+
+    // Start gradual height adjustment
+    gradualHeightAdjustment(targetHeight);
+
+    // Set motor speed based on the new height level (optional)
+    motorSpeed = 100 * (heightMap[height] / 20); // Example: slower on higher positions
+    setMotorSpeed(motorSpeed); // Set motor speed to maintain balance
+
+    sendMQTTMessage(topics.output.console, { source: "pid", message: `Adjusting height to ${height}` });
+  } else {
+    console.log("Height adjustment already in progress or invalid height", heightMap[height], heightAdjustmentInProgress);
+  }
+}
+
+// Helper function to adjust servo angles
+function setServoAngles() {
+  sendMQTTMessage(topics.output.servoLeft, servoAngles.left);
+  sendMQTTMessage(topics.output.servoRight, servoAngles.right);
 }
 
 function handleStart() {
@@ -387,7 +457,7 @@ function toBoolean(value) {
 
 function adjustServos(xAngle) {
   // Base pulse width for the current height level
-  const basePulseWidth = heightLevels[heightLevel]?.basePulseWidth;
+  const basePulseWidth = heightLevels[currentHeight]?.basePulseWidth;
 
   // Calculate height difference from the tilt angle
   const heightDifference = xAngle * 0.1;
@@ -405,7 +475,7 @@ function adjustServos(xAngle) {
   // Publish servo pulse width values via MQTT
   sendMQTTMessage(topics.output.servoLeft, leftPulseWidth);
   sendMQTTMessage(topics.output.servoRight, rightPulseWidth);
-}
+  }
 
 // Run control loop at regular intervals (e.g., 200ms)
 handleStart();

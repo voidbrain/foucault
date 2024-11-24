@@ -5,7 +5,6 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 
-// Setup an HTTP server to bind Socket.io
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
@@ -21,15 +20,12 @@ const io = socketIo(server, {
     credentials: true
   }
 });
-
-// Setup MQTT connection
 const mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL || 'mqtt://mqtt-broker:1883');
 
 mqttClient.on('connect', () => {
   console.log('Connected to MQTT broker');
 });
 
-// MQTT topics
 const topics = {
   input: {
     console: 'console/log',
@@ -50,7 +46,6 @@ const topics = {
   },
 };
 
-// Subscribe to all MQTT topics
 Object.keys(topics.input).forEach(topic => {
   mqttClient.subscribe(topics.input[topic], (err) => {
     if (err) {
@@ -63,11 +58,7 @@ Object.keys(topics.input).forEach(topic => {
 io.on('connection', (socket) => {
   socket.on('message', (data) => {
     const { topic, value, ...source } = data;
-    if(topic === topics.input.setKd || topic === topics.input.setKi || topic === topics.input.setKp || topic === topics.input.setIncrementDegree){
-      console.log(topic, value)
-    }
 
-    // Publish the message to the specified MQTT topic
     mqttClient.publish(topic, value, (err) => {
       if (err) {
         console.error(`Failed to publish message to ${topic}:`, err);
@@ -85,16 +76,12 @@ io.on('connection', (socket) => {
 // When MQTT messages are received, emit them to the connected frontend
 mqttClient.on('message', (topic, message) => {
   let parsedMessage = {};
-  // console.log(topic, message.toString())
-  // Attempt to parse the message if it's JSON
   try {
     parsedMessage = message.toString();
   } catch (error) {
     console.error('Failed to parse MQTT message:', error);
     parsedMessage = { message: message.toString(), value: null };
   }
-
-  // Emit the parsed message to the frontend via WebSocket
   io.emit('mqtt-message', { topic, data: parsedMessage });
 });
 
@@ -103,7 +90,6 @@ app.get('/detect', (req, res) => {
   // Add object detection code here
   res.send('Object detection started');
 });
-
 
 // Start the HTTP server
 const PORT = process.env.PORT || 8080;

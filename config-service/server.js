@@ -92,13 +92,8 @@ mqttClient.on('message', (topic, message) => {
   try {
     // Parse the incoming message as JSON
     const parsedMessage = message.toString();
-    console.log('Parsed message:', parsedMessage);
-
     // Access properties in the parsed object
     const { Kp, Ki, Kd, heightLevel, enableSensorAdjustements, incrementDegree } = parsedMessage;
-    console.log('Kp:', Kp, 'Ki:', Ki, 'Kd:', Kd, "IncrementDegree:", incrementDegree,
-      'Height Level:', heightLevel, "Enable Sensor Adjustements:", enableSensorAdjustements, "parsedMessage:", parsedMessage);
-
   } catch (error) {
     // Handle JSON parsing errors
     console.error('Error parsing message:', error.message);
@@ -115,8 +110,6 @@ mqttClient.on('message', (topic, message) => {
 // Save config to file
 const saveConfig = () => {
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf-8');
-  
-  console.log(config);
 };
 
 // Endpoint to get the current config
