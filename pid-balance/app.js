@@ -91,8 +91,8 @@ const heightMap = {
 // Define pulse width ranges for height levels
 const heightLevels = {
   low: { basePulseWidth: 500 },
-  mid: { basePulseWidth: 700 },
-  high: { basePulseWidth: 900 },
+  mid: { basePulseWidth: 1500 },
+  high: { basePulseWidth: 2500 },
 };
 
 let controlLoopInterval = null;
@@ -284,9 +284,46 @@ function setMotorSpeed(motorSpeed) {
   console.log(`Setting motor speed to: ${motorSpeed}%`);
 }
 
-function setServoAngles() {
-  sendMQTTMessage(topics.output.servoLeft, servoAngles.left);
-  sendMQTTMessage(topics.output.servoRight, servoAngles.right);
+function angleToPWM(angle) {
+  // Map angle (0°-180°) to PWM (1000µs-2000µs)
+  return 1000 + (angle / 180) * 1000;
+}
+
+// function setServoAngles() {
+//   const pwmLeft = angleToPWM(servoAngles.left);
+//   const pwmRight = angleToPWM(servoAngles.right);
+
+//   sendMQTTMessage(topics.output.servoLeft, pwmLeft);
+//   sendMQTTMessage(topics.output.servoRight, pwmRight);
+//   console.log(`Servo PWM set to left: ${pwmLeft}µs, right: ${pwmRight}µs`);
+// }
+
+function adjustServos(xAngle) {
+  // Base pulse width for the current height level
+  const basePulseWidth = heightLevels[currentHeight]?.basePulseWidth;
+
+  // Calculate height difference from the tilt angle
+  const heightDifference = xAngle * 0.1;
+  
+  // Adjust left and right pulse widths
+  const leftPulseWidth = Math.max(
+    500,
+    Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
+  );
+  const rightPulseWidth = Math.max(
+    500,
+    Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
+  );
+
+  // Publish servo pulse width values via MQTT
+  sendMQTTMessage(topics.output.servoLeft, {
+    source: "pid",
+    value: leftPulseWidth,
+  });
+  sendMQTTMessage(topics.output.servoRight, {
+    source: "pid",
+    value: rightPulseWidth,
+  });
 }
 
 function handleStart() {
@@ -297,7 +334,7 @@ function handleStart() {
 
   servoAngles.left = 0;
   servoAngles.right = 0;
-  setServoAngles();
+  
 
   controlLoopInterval = setInterval(async () => {
     const tiltAngles = await getTiltAngles();
@@ -321,7 +358,12 @@ function handleStart() {
 
     sendMQTTMessage(topics.output.tiltAngles, { tiltAngles, source: "pid" });
     
-    setMotorSpeeds(pidLeft.output, pidRight.output);
+    if (isSensorAdjustmentEnabled === true) {
+      setMotorSpeeds(pidLeft.output, pidRight.output);
+      adjustServos(tiltAngles.xAngle);
+    } else {
+      handleStop();
+    }
   }, 100);
 }
 
