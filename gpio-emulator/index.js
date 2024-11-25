@@ -24,7 +24,9 @@ process.on("SIGINT", () => {
 });
 
 // Keep the Node.js process alive (e.g., by setting a timer or using `setInterval`)
-setInterval(() => {}, 1000);
+setInterval(() => {
+  getTiltAngles();
+}, 1000);
 
 // Function to simulate reading accelerometer data (mock data)
 function mockAccelerometerData() {
@@ -69,4 +71,4 @@ async function getTiltAngles() {
 }
 
 // Example: Get tilt angles
-getTiltAngles();
+
