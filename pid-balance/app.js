@@ -234,8 +234,9 @@ function gradualHeightAdjustment(targetHeight, duration = 2000) {
 }
 
 // Update handleSetHeight to use gradualHeightAdjustment
-function handleSetHeight(height) {
-  if (heightMap[height] && !heightAdjustmentInProgress) {
+function handleSetHeight(value) {
+  const height = value.toString();
+  if (heightLevels[value] && !heightAdjustmentInProgress) {
     // Mark height adjustment as in progress
     heightAdjustmentInProgress = true;
 
@@ -255,6 +256,18 @@ function handleSetHeight(height) {
   }
 }
 
+function setMotorSpeed(motorSpeed) {
+  // Ensure motorSpeed is within a valid range (e.g., -100 to 100)
+  motorSpeed = Math.max(-100, Math.min(100, motorSpeed));
+
+  // Assuming you have a way to send this speed to the motor
+  // For example, using a motor driver library to set PWM signal:
+  console.log(`Setting motor speed to: ${motorSpeed}%`);
+
+  // Example motor control (replace with actual code for your setup)
+  // motorController.setSpeed(motorSpeed); // Replace with actual motor control API
+}
+
 // Helper function to adjust servo angles
 function setServoAngles() {
   sendMQTTMessage(topics.output.servoLeft, servoAngles.left);
@@ -268,6 +281,11 @@ function handleStart() {
     console.warn("Control loop is already running.");
     return;
   }
+
+  servoAngles.left = 0;
+  servoAngles.right = 0;
+  setServoAngles();
+
   controlLoopInterval = setInterval(async () => {
     const tiltAngles = await getTiltAngles();
     const pidLeft = pidControl(
