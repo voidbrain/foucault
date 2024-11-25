@@ -132,7 +132,7 @@ function handleMqttMessage(topic, value) {
 
     case topics.input.motorLeft:
       if (isValidMotor) {
-        motorLeft.pwmWrite(value);
+        // motorLeft.pwmWrite(value);
         sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Left Motor PWM set to: ${value}`});
       } else {
         sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Invalid value for Left Motor PWM: ${value}`});
@@ -141,7 +141,7 @@ function handleMqttMessage(topic, value) {
 
     case topics.input.motorRight:
       if (isValidMotor) {
-        motorRight.pwmWrite(value);
+        // motorRight.pwmWrite(value);
         sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Right Motor PWM set to: ${value}`});
       } else {
         sendMQTTMessage(topics.output.console, { source:'motor-controller', message: `Invalid value for Right Motor PWM: ${value}`});

@@ -1,65 +1,60 @@
 const i2cBus = require("i2c-bus");
 const mqtt = require("mqtt");
 const axios = require("axios");
-const fs = require('fs'); 
+const fs = require("fs");
 
 // Mock Modules
-const MockGPIO = require('./mocks/gpio.cjs');  // Import the MockGPIO class
-const MockI2C = require('./mocks/i2c-bus.cjs');  // Import the mock I2C device class
+const MockI2C = require("./mocks/i2c-bus.cjs"); // Import the mock I2C device class
+const address = 0x68; // MPU6050 default I2C address
+
+let device = isRaspberryPi() ? 1 : "mock"; // Use `let` if device might change
+let i2c; // Declare i2c as `let` for later assignment
+let i2cDevice; // Declare `i2cDevice` for initialization inside the async block
 
 function isRaspberryPi() {
   try {
-    // Read /proc/cpuinfo
-    const cpuInfo = fs.readFileSync('/proc/cpuinfo', 'utf8');
-    if (cpuInfo.includes('Raspberry Pi')) {
+    // Check /proc/cpuinfo
+    const cpuInfo = fs.readFileSync("/proc/cpuinfo", "utf8");
+    if (cpuInfo.includes("Raspberry Pi")) {
       return true;
     }
 
-    // Read /sys/firmware/devicetree/base/model
-    const modelPath = '/sys/firmware/devicetree/base/model';
+    // Check /sys/firmware/devicetree/base/model
+    const modelPath = "/sys/firmware/devicetree/base/model";
     if (fs.existsSync(modelPath)) {
-      const model = fs.readFileSync(modelPath, 'utf8').toLowerCase();
-      if (model.includes('raspberry pi')) {
+      const model = fs.readFileSync(modelPath, "utf8").toLowerCase();
+      if (model.includes("raspberry pi")) {
         return true;
       }
     }
   } catch (error) {
-    console.error('Error checking Raspberry Pi:', error);
+    console.error("Error checking Raspberry Pi:", error);
   }
 
   return false;
 }
 
 (async () => {
-  let i2cDevice;
+  try {
+    if (isRaspberryPi()) {
+      console.log("Running on Raspberry Pi. Initializing real I2C device...");
+      device = 1; // Set to the actual I2C bus number
+      i2cDevice = i2cBus.openSync(device); // Open /dev/i2c-1
+    } else {
+      console.warn("Running in a non-Raspberry Pi environment. Using mock I2C device.");
+      i2cDevice = new MockI2C(); // Initialize the mock I2C
+    }
 
-try {
-  const address = 0x68; // MPU6050 default I2C address
-  const device = isRaspberryPi() ? "/dev/i2c-1" : "/dev/i2c-mock"; // Use mock device path if not on a Raspberry Pi
+    i2c = i2cDevice; // Assign to `i2c` for consistent usage
 
-  // Check if it's a Raspberry Pi, and use real I2C or mock accordingly
-  if (isRaspberryPi()) {
-    // If it's a Raspberry Pi, open the real I2C device
-    i2cDevice = i2cBus.openSync(1);  // /dev/i2c-1 is typically mapped to bus number 1 on Pi
-  } else {
-    // If not a Raspberry Pi, use a mock I2C device (e.g., mock the behavior for testing)
-    console.warn("Running in a non-Raspberry Pi environment. Using mock I2C device.");
-    i2cDevice = MockI2C.openSync("/dev/i2c-mock");  // Your mock I2C implementation
-  }
-
-  console.log(`I2C connection established. Device: ${device}, Address: ${address}`);
-
-  // Example: Read from MPU6050 (or mock equivalent)
-  const buffer = Buffer.alloc(6);  // Allocate buffer for reading 6 bytes (for example)
-  i2cDevice.readI2cBlockSync(address, 0x3B, 6, buffer); // Read data from the sensor
-  console.log("Read data from I2C device:", buffer.toString());
-
+    console.log(`I2C connection established. Device: ${device}, Address: ${address}`);
   } catch (error) {
     console.error("Error initializing I2C connection:", error);
     process.exit(1); // Exit if there is an error initializing I2C
   }
 })();
 
+// PID and other configurations...
 let Kp = 0;
 let Ki = 0;
 let Kd = 0;
@@ -174,7 +169,9 @@ mqttClient.on("message", (topic, value) => {
 async function fetchConfig() {
   try {
     console.log("Fetching configuration...");
-    const response = await axios.get("http://config-service:3004/config", { withCredentials: true });
+    const response = await axios.get("http://config-service:3004/config", {
+      withCredentials: true,
+    });
     const config = response.data;
 
     initializePID(config);
@@ -190,7 +187,8 @@ function initializePID(config) {
   if (config.Kd) Kd = config.Kd;
   if (config.incrementDegree) incrementDegree = config.incrementDegree;
   if (config.heightLevel) currentHeight = config.heightLevel;
-  if (config.isSensorAdjustmentEnabled) isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled;
+  if (config.isSensorAdjustmentEnabled)
+    isSensorAdjustmentEnabled = config.isSensorAdjustmentEnabled;
 
   console.log(`PID initialized with Kp: ${Kp}, Ki: ${Ki}, Kd: ${Kd}`);
 }
@@ -254,7 +252,10 @@ function gradualHeightAdjustment(targetHeight, duration = 2000) {
     if (stepCount >= steps) {
       clearInterval(interval);
       heightAdjustmentInProgress = false;
-      sendMQTTMessage(topics.output.console, { source: "pid", message: `Height adjustment to ${targetHeight} complete` });
+      sendMQTTMessage(topics.output.console, {
+        source: "pid",
+        message: `Height adjustment to ${targetHeight} complete`,
+      });
     }
   }, duration / steps);
 }
@@ -269,7 +270,10 @@ function handleSetHeight(value) {
     motorSpeed = 100 * (heightMap[height] / 20);
     setMotorSpeed(motorSpeed);
 
-    sendMQTTMessage(topics.output.console, { source: "pid", message: `Adjusting height to ${height}` });
+    sendMQTTMessage(topics.output.console, {
+      source: "pid",
+      message: `Adjusting height to ${height}`,
+    });
   } else {
     console.log("Height adjustment already in progress or invalid height");
   }
@@ -297,14 +301,26 @@ function handleStart() {
 
   controlLoopInterval = setInterval(async () => {
     const tiltAngles = await getTiltAngles();
-    const pidLeft = pidControl(tiltAngles.xAngle, previousErrorLeft, integralLeft, true);
-    const pidRight = pidControl(tiltAngles.yAngle, previousErrorRight, integralRight, false);
+    const pidLeft = pidControl(
+      tiltAngles.xAngle,
+      previousErrorLeft,
+      integralLeft,
+      true
+    );
+    const pidRight = pidControl(
+      tiltAngles.yAngle,
+      previousErrorRight,
+      integralRight,
+      false
+    );
 
     previousErrorLeft = pidLeft.previousError;
     integralLeft = pidLeft.integral;
     previousErrorRight = pidRight.previousError;
     integralRight = pidRight.integral;
 
+    sendMQTTMessage(topics.output.tiltAngles, { tiltAngles, source: "pid" });
+    
     setMotorSpeeds(pidLeft.output, pidRight.output);
   }, 100);
 }
@@ -345,8 +361,8 @@ async function getTiltAngles() {
 
     // Send data via MQTT
     sendMQTTMessage(topics.output.accelData, { accelData, source: "pid" });
-    
     return { xAngle, yAngle };
+    
   } catch (error) {
     sendMQTTMessage(topics.output.console, {
       source: "pid",
@@ -355,28 +371,37 @@ async function getTiltAngles() {
     return { xAngle: 0, yAngle: 0 };
   }
 }
-
 function readAccelerometer() {
   return new Promise((resolve, reject) => {
-    wire.readBytes(ACCEL_XOUT_H, 6, (err, buffer) => {
-      if (err) {
-        reject("Failed to read accelerometer data");
-      } else {
-        let accelX = (buffer[0] << 8) | buffer[1];
-        let accelY = (buffer[2] << 8) | buffer[3];
-        let accelZ = (buffer[4] << 8) | buffer[5];
+    try {
+      // Read 6 bytes starting from the accelerometer's X-axis high register
+      const buffer = Buffer.alloc(6);  // Create a buffer of size 6
+      const bytesRead = i2c.readI2cBlockSync(address, ACCEL_XOUT_H, 6, buffer);
 
-        // Handle signed 16-bit data (conversion from unsigned)
-        accelX = accelX > 32767 ? accelX - 65536 : accelX;
-        accelY = accelY > 32767 ? accelY - 65536 : accelY;
-        accelZ = accelZ > 32767 ? accelZ - 65536 : accelZ;
-
-        // Return the accelerometer data
-        resolve({ accelX, accelY, accelZ });
+      // Check if the number of bytes read is as expected
+      if (bytesRead !== 6) {
+        throw new Error(`Expected 6 bytes, but got ${bytesRead}`);
       }
-    });
+
+      // Combine high and low bytes into 16-bit signed values
+      let accelX = (buffer[0] << 8) | buffer[1];
+      let accelY = (buffer[2] << 8) | buffer[3];
+      let accelZ = (buffer[4] << 8) | buffer[5];
+
+      // Handle signed 16-bit data (conversion from unsigned)
+      accelX = accelX > 32767 ? accelX - 65536 : accelX;
+      accelY = accelY > 32767 ? accelY - 65536 : accelY;
+      accelZ = accelZ > 32767 ? accelZ - 65536 : accelZ;
+
+      // Resolve with the accelerometer data
+      resolve({ accelX, accelY, accelZ });
+    } catch (err) {
+      console.error("Error reading accelerometer:", err); // Log error for debugging
+      reject("Failed to read accelerometer data");
+    }
   });
 }
+
 
 
 function pidControl(currentAngle, previousError, integral, isLeft) {
@@ -396,3 +421,36 @@ function toBoolean(value) {
   return value === "true";
 }
 
+// Wake up the MPU6050 by writing 0 to the PWR_MGMT_1 register
+function wakeUpMPU6050() {
+  const PWR_MGMT_1 = 0x6B; // Power Management register address
+  const data = 0x00; // Value to wake up the MPU6050
+  
+  try {
+    // Write data to the power management register
+    i2c.writeByteSync(address, PWR_MGMT_1, data);
+
+    // Send success message via MQTT
+    sendMQTTMessage(topics.output.console, {
+      source: "pid",
+      message: "MPU6050 awake",
+      error: null,
+    });
+  } catch (err) {
+    // Send error message via MQTT
+    sendMQTTMessage(topics.output.console, {
+      source: "pid",
+      message: "Error waking up MPU6050",
+      error: err.message,
+    });
+
+    console.error("Error waking up MPU6050:", err);
+  }
+}
+
+
+// Run control loop at regular intervals (e.g., 200ms)
+handleStart();
+
+// Initialize MPU6050
+wakeUpMPU6050();
