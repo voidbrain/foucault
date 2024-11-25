@@ -1,21 +1,44 @@
 const i2cBus = require("i2c-bus");
 const mqtt = require("mqtt");
 const axios = require("axios");
-const isPi = require("detect-rpi");
+const fs = require('fs'); 
 
 // Mock Modules
 const MockGPIO = require('./mocks/gpio.cjs');  // Import the MockGPIO class
 const MockI2C = require('./mocks/i2c-bus.cjs');  // Import the mock I2C device class
+
+function isRaspberryPi() {
+  try {
+    // Read /proc/cpuinfo
+    const cpuInfo = fs.readFileSync('/proc/cpuinfo', 'utf8');
+    if (cpuInfo.includes('Raspberry Pi')) {
+      return true;
+    }
+
+    // Read /sys/firmware/devicetree/base/model
+    const modelPath = '/sys/firmware/devicetree/base/model';
+    if (fs.existsSync(modelPath)) {
+      const model = fs.readFileSync(modelPath, 'utf8').toLowerCase();
+      if (model.includes('raspberry pi')) {
+        return true;
+      }
+    }
+  } catch (error) {
+    console.error('Error checking Raspberry Pi:', error);
+  }
+
+  return false;
+}
 
 (async () => {
   let i2cDevice;
 
 try {
   const address = 0x68; // MPU6050 default I2C address
-  const device = isPi() ? "/dev/i2c-1" : "/dev/i2c-mock"; // Use mock device path if not on a Raspberry Pi
+  const device = isRaspberryPi() ? "/dev/i2c-1" : "/dev/i2c-mock"; // Use mock device path if not on a Raspberry Pi
 
   // Check if it's a Raspberry Pi, and use real I2C or mock accordingly
-  if (isPi()) {
+  if (isRaspberryPi()) {
     // If it's a Raspberry Pi, open the real I2C device
     i2cDevice = i2cBus.openSync(1);  // /dev/i2c-1 is typically mapped to bus number 1 on Pi
   } else {
@@ -29,7 +52,7 @@ try {
   // Example: Read from MPU6050 (or mock equivalent)
   const buffer = Buffer.alloc(6);  // Allocate buffer for reading 6 bytes (for example)
   i2cDevice.readI2cBlockSync(address, 0x3B, 6, buffer); // Read data from the sensor
-  console.log("Read data from I2C device:", buffer);
+  console.log("Read data from I2C device:", buffer.toString());
 
   } catch (error) {
     console.error("Error initializing I2C connection:", error);

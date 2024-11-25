@@ -1,21 +1,48 @@
-const isPi = require("detect-rpi");  // Detect Raspberry Pi
+const fs = require('fs');  // Detect Raspberry Pi
 const i2cBus = require("i2c-bus");   // I2C bus library
 let Gpio;                           // Declare Gpio without initializing
 let i2cDevice;                      // Declare i2cDevice without initializing
 
-if (isPi()) {
-  console.log("Running on Raspberry Pi. Using real GPIO and I2C.");
-  Gpio = require("pigpio").Gpio;    // Real Raspberry Pi GPIO
-  i2cDevice = i2cBus.openSync(1);    // Real I2C device (assuming bus 1)
-} else {
-  console.warn("Running in a non-Raspberry Pi environment. Using mock devices.");
-  Gpio = require('./mocks/gpio.cjs');  // Mock GPIO class
-  i2cDevice = require('./mocks/i2c-bus.cjs').openSync("/dev/i2c-mock");  // Mock I2C device
+let motorLeft
+let motorRight
+
+function isRaspberryPi() {
+  try {
+    // Read /proc/cpuinfo
+    const cpuInfo = fs.readFileSync('/proc/cpuinfo', 'utf8');
+    if (cpuInfo.includes('Raspberry Pi')) {
+      return true;
+    }
+
+    // Read /sys/firmware/devicetree/base/model
+    const modelPath = '/sys/firmware/devicetree/base/model';
+    if (fs.existsSync(modelPath)) {
+      const model = fs.readFileSync(modelPath, 'utf8').toLowerCase();
+      if (model.includes('raspberry pi')) {
+        return true;
+      }
+    }
+  } catch (error) {
+    console.error('Error checking Raspberry Pi:', error);
+  }
+
+  return false;
 }
 
-// Initialize GPIO pins for motors and servos
-const motorLeft = new Gpio(31, { mode: Gpio.OUTPUT });
-const motorRight = new Gpio(33, { mode: Gpio.OUTPUT });
+if (isRaspberryPi()) {
+  console.log("Running on Raspberry Pi. Using real GPIO and I2C.");
+} else {
+  console.warn("Running in a non-Raspberry Pi environment. Using mock devices.");
+
+  Gpio = require('./mocks/gpio.cjs');  // Mock GPIO class
+  i2cDevice = require('./mocks/i2c-bus.cjs').openSync("/dev/i2c-mock");  // Mock I2C device
+
+  // Initialize GPIO pins for motors and servos
+  motorLeft = new Gpio(31, { mode: Gpio.OUTPUT });
+  motorRight = new Gpio(33, { mode: Gpio.OUTPUT });
+}
+
+
 
 // Handle signals to gracefully shut down the process
 process.on("SIGINT", () => {
@@ -24,9 +51,13 @@ process.on("SIGINT", () => {
 });
 
 // Keep the Node.js process alive (e.g., by setting a timer or using `setInterval`)
-setInterval(() => {
-  getTiltAngles();
-}, 1000);
+
+  setInterval(() => {
+    if (isRaspberryPi() === false) {
+      getTiltAngles();
+    }
+  }, 1000);
+
 
 // Function to simulate reading accelerometer data (mock data)
 function mockAccelerometerData() {
@@ -36,7 +67,7 @@ function mockAccelerometerData() {
 // Function to read accelerometer data (mock or real)
 function readAccelerometer() {
   return new Promise((resolve, reject) => {
-    if (isPi()) {
+    if (isRaspberryPi()) {
       // Real I2C accelerometer data (assuming ACCEL_XOUT_H is the starting register)
       i2cDevice.i2cReadSync(0x68, 6, Buffer.from([0, 0, 0, 0, 0, 0])); // Example for real I2C read
       resolve(i2cDevice);
@@ -69,6 +100,4 @@ async function getTiltAngles() {
     return { xAngle: 0, yAngle: 0 };  // Return default if error occurs
   }
 }
-
-// Example: Get tilt angles
 
