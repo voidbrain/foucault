@@ -299,11 +299,62 @@ function setMotorSpeeds(leftSpeed, rightSpeed) {
   sendMQTTMessage(topics.output.motorRight, rightSpeed);
 }
 
+// async function getTiltAngles() {
+//   const accelerometerData = await wire.readBytes(ACCEL_XOUT_H, 6);
+//   // Extract tilt angles and return them
+//   return { xAngle: 0, yAngle: 0 };
+// }
+
 async function getTiltAngles() {
-  const accelerometerData = await wire.readBytes(ACCEL_XOUT_H, 6);
-  // Extract tilt angles and return them
-  return { xAngle: 0, yAngle: 0 };
+  try {
+    const accelData = await readAccelerometer();
+    
+    // Scale accelerometer data to 'g' (assuming 16-bit raw data)
+    const scaleFactor = 16384; // Assuming default sensitivity for MPU6050 (±2g range)
+
+    const accelXg = accelData.accelX / scaleFactor;
+    const accelYg = accelData.accelY / scaleFactor;
+    const accelZg = accelData.accelZ / scaleFactor;
+
+    // Calculate tilt angles using accelerometer data
+    const xAngle = Math.atan2(accelYg, accelZg) * (180 / Math.PI);
+    const yAngle = Math.atan2(accelXg, accelZg) * (180 / Math.PI);
+
+    // Send data via MQTT
+    sendMQTTMessage(topics.output.accelData, { accelData, source: "pid" });
+    
+    return { xAngle, yAngle };
+  } catch (error) {
+    sendMQTTMessage(topics.output.console, {
+      source: "pid",
+      message: `Error getting tilt angles: ${error}`,
+    });
+    return { xAngle: 0, yAngle: 0 };
+  }
 }
+
+function readAccelerometer() {
+  return new Promise((resolve, reject) => {
+    wire.readBytes(ACCEL_XOUT_H, 6, (err, buffer) => {
+      if (err) {
+        reject("Failed to read accelerometer data");
+      } else {
+        let accelX = (buffer[0] << 8) | buffer[1];
+        let accelY = (buffer[2] << 8) | buffer[3];
+        let accelZ = (buffer[4] << 8) | buffer[5];
+
+        // Handle signed 16-bit data (conversion from unsigned)
+        accelX = accelX > 32767 ? accelX - 65536 : accelX;
+        accelY = accelY > 32767 ? accelY - 65536 : accelY;
+        accelZ = accelZ > 32767 ? accelZ - 65536 : accelZ;
+
+        // Return the accelerometer data
+        resolve({ accelX, accelY, accelZ });
+      }
+    });
+  });
+}
+
 
 function pidControl(currentAngle, previousError, integral, isLeft) {
   const error = setpoint - currentAngle;
