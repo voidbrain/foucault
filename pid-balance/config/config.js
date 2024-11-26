@@ -2,9 +2,9 @@ const axios = require("axios");
 
 // Static default configuration
 const defaultConfig = {
-  mqttUrl: "mqtt://localhost:1883", // Replace with your MQTT broker URL
+  mqttUrl: "mqtt://mqtt-broker:1883",
   i2c: {
-    address: 0x68, // Example I2C address for a device like MPU6050
+    address: 0x68, 
     accelRegister: 0x3b,
   },
   pidConfig: {

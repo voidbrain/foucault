@@ -24,8 +24,14 @@ async function getTiltAngles() {
     const xAngle = Math.atan2(accelYg, accelZg) * (180 / Math.PI);
     const yAngle = Math.atan2(accelXg, accelZg) * (180 / Math.PI);
 
-    sendMQTTMessage(topics.output.tiltAngles, { accelData, xAngle, yAngle });
-    console.log(topics.output.tiltAngles, { accelData, xAngle, yAngle })
+    sendMQTTMessage(topics.output.accelData, { accelData });
+    const tiltAngles = { xAngle, yAngle };
+    const source = "pid";
+    sendMQTTMessage(topics.output.tiltAngles, { tiltAngles, source});
+
+    console.log(topics.output.accelData, { accelData });
+    console.log(topics.output.tiltAngles, { xAngle, yAngle });
+
     return { xAngle, yAngle };
   } catch (error) {
     sendMQTTMessage(topics.output.console, { message: `Error: ${error}` });
