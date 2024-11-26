@@ -42,7 +42,7 @@ function isRaspberryPi() {
       i2cDevice = i2cBus.openSync(device); // Open /dev/i2c-1
     } else {
       console.warn("Running in a non-Raspberry Pi environment. Using mock I2C device.");
-      i2cDevice = new MockI2C(); // Initialize the mock I2C
+      i2cDevice = MockI2C.openSync("/dev/i2c-mock"); // Initialize the mock I2C
     }
 
     i2c = i2cDevice; // Assign to `i2c` for consistent usage

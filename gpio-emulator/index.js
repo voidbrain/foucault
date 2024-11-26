@@ -6,6 +6,14 @@ let i2cDevice;                      // Declare i2cDevice without initializing
 let motorLeft
 let motorRight
 
+const isPi = isRaspberryPi();
+
+const gpioPath = isPi ? '/sys/class/gpio' : './mocks/sys/class/gpio';
+const cpuInfoPath = isPi ? '/proc/cpuinfo' : './mocks/proc/cpuinfo';
+const firmwareModelPath = isPi
+  ? '/sys/firmware/devicetree/base/model'
+  : './mocks/sys/firmware/devicetree/base/model';
+
 function isRaspberryPi() {
   try {
     // Read /proc/cpuinfo
@@ -29,7 +37,7 @@ function isRaspberryPi() {
   return false;
 }
 
-if (isRaspberryPi()) {
+if (isPi) {
   console.log("Running on Raspberry Pi. Using real GPIO and I2C.");
 } else {
   console.warn("Running in a non-Raspberry Pi environment. Using mock devices.");
@@ -53,7 +61,7 @@ process.on("SIGINT", () => {
 // Keep the Node.js process alive (e.g., by setting a timer or using `setInterval`)
 
   setInterval(() => {
-    if (isRaspberryPi() === false) {
+    if (isPi === false) {
       getTiltAngles();
     }
   }, 1000);
@@ -67,7 +75,7 @@ function mockAccelerometerData() {
 // Function to read accelerometer data (mock or real)
 function readAccelerometer() {
   return new Promise((resolve, reject) => {
-    if (isRaspberryPi()) {
+    if (isPi) {
       // Real I2C accelerometer data (assuming ACCEL_XOUT_H is the starting register)
       i2cDevice.i2cReadSync(0x68, 6, Buffer.from([0, 0, 0, 0, 0, 0])); // Example for real I2C read
       resolve(i2cDevice);
