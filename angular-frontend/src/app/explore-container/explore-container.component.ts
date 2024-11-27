@@ -292,9 +292,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
             break;
           case this.topics.input['setHeight']:
             parsedMessage = data.toString();
-            console.log(data);
             this.adjustTHREERobotHeightValue = parsedMessage;
-            console.log(this.adjustTHREERobotHeightValue);
             break;
           case this.topics.input['enableSensorAdjustements']:
             parsedMessage = JSON.parse(data);

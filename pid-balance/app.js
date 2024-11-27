@@ -65,7 +65,6 @@ function adjustServos(xAngle) {
     500,
     Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
   );
-console.log(heightLevels, currentHeight)
   // Publish servo pulse width values via MQTT
   sendMQTTMessage(topics.output.servoLeft, {
     source: "pid",
