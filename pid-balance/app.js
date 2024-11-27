@@ -3,7 +3,7 @@
 const { readAccelerometer } = require("./hardware/i2c.js");
 const { sendMQTTMessage, initializeMQTT } = require("./mqtt/mqttClient.js");
 const PIDController = require("./pid/pidController.js");
-const {getConfig} = require("./config/config.js");
+const { getConfig } = require("./config/config.js");
 
 const source = "pid";
 let pid;
@@ -11,8 +11,8 @@ let enableSensorAdjustments = true;
 let controlLoopInterval = null;
 let topics;
 
-let currentHeight = '';
-let heightLevels 
+let currentHeight = "";
+let heightLevels;
 let heightAdjustmentInProgress = false;
 
 let setpoint = 0; // Desired balance angle (0 for upright)
@@ -30,10 +30,9 @@ async function getTiltAngles() {
     const xAngle = Math.atan2(accelYg, accelZg) * (180 / Math.PI);
     const yAngle = Math.atan2(accelXg, accelZg) * (180 / Math.PI);
     const tiltAngles = { xAngle, yAngle };
-    
 
     sendMQTTMessage(topics.output.accelData, { value: accelData, source });
-    sendMQTTMessage(topics.output.tiltAngles, { value: tiltAngles, source});
+    sendMQTTMessage(topics.output.tiltAngles, { value: tiltAngles, source });
     return { xAngle, yAngle };
   } catch (error) {
     sendMQTTMessage(topics.output.console, { message: `Error: ${error}` });
@@ -62,31 +61,53 @@ function setMotorSpeeds(leftSpeed, rightSpeed) {
   });
 }
 
-function adjustServos(xAngle) {
-  if (heightAdjustmentInProgress) return;
-  // Base pulse width for the current height level
-  const basePulseWidth = heightLevels[currentHeight]?.basePulseWidth;
+// function adjustServos(xAngle) {
+//   if (heightAdjustmentInProgress) return;
 
-  // Calculate height difference from the tilt angle
-  const heightDifference = +xAngle * 0.1;
-  
-  // Adjust left and right pulse widths
-  const leftPulseWidth = Math.max(
-    500,
-    Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
-  );
-  const rightPulseWidth = Math.max(
-    500,
-    Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
-  );
-  // Publish servo pulse width values via MQTT
-  sendMQTTMessage(topics.output.servoLeft, {
+//   // Calculate height difference from the tilt angle
+//   const heightDifference = +xAngle * 0.1;
+
+//   // Adjust left and right pulse widths
+//   const leftPulseWidth = Math.max(
+//     500,
+//     Math.min(2500, Math.round(heightDifference * 2000))
+//   );
+//   const rightPulseWidth = Math.max(
+//     500,
+//     Math.min(2500, Math.round(-heightDifference * 2000))
+//   );
+//   // Publish servo pulse width values via MQTT
+//   sendMQTTMessage(topics.output.servoLeft, {
+//     source,
+//     value: leftPulseWidth,
+//   });
+//   sendMQTTMessage(topics.output.servoRight, {
+//     source,
+//     value: rightPulseWidth,
+//   });
+// }
+
+function adjustServos(interpolatedAngle, xAngle) {
+  // Tilt correction: dynamically adjust based on xAngle
+  const tiltCorrection = xAngle * 10; // Adjust scale as needed
+
+  // Calculate final servo angles
+  const leftServoAngle = interpolatedAngle + tiltCorrection;
+  const rightServoAngle = interpolatedAngle - tiltCorrection;
+
+  // Rotate servos to calculated angles
+  rotateServoToAngle(topics.output.servoLeft, leftServoAngle);
+  rotateServoToAngle(topics.output.servoRight, rightServoAngle);
+}
+// Rotate 360-degree servo to a specific angle
+function rotateServoToAngle(servo, angle) {
+  // Map angle (0 to 360) to pulse width (500 to 2500 microseconds)
+  const pulseWidth = Math.round(500 + (angle / 360) * 2000);
+
+  // Send pulse width to the servo
+  sendMQTTMessage(servo, {
     source,
-    value: leftPulseWidth,
-  });
-  sendMQTTMessage(topics.output.servoRight, {
-    source,
-    value: rightPulseWidth,
+    value: pulseWidth,
   });
 }
 
@@ -96,7 +117,11 @@ async function startControlLoop() {
   heightLevels = config.pulseHeightLevels;
   incrementDegree = config.incrementDegree;
 
-  pid = new PIDController(config.pidConfig.Kp, config.pidConfig.Ki, config.pidConfig.Kd);
+  pid = new PIDController(
+    config.pidConfig.Kp,
+    config.pidConfig.Ki,
+    config.pidConfig.Kd
+  );
 
   if (controlLoopInterval) {
     console.warn("Control loop already running.");
@@ -106,7 +131,7 @@ async function startControlLoop() {
   controlLoopInterval = setInterval(async () => {
     const tiltAngles = await getTiltAngles();
 
-    if(enableSensorAdjustments === true){
+    if (enableSensorAdjustments === true) {
       const pitchCorrection = pid.compute(0, tiltAngles.xAngle); // Common adjustment for pitch
       const rollCorrection = pid.compute(0, tiltAngles.yAngle); // Differential adjustment for roll
 
@@ -188,7 +213,12 @@ function handleWalk(direction) {
   console.log(walk, walkDirection);
   switch (walkDirection) {
     case "forward":
-      pidControl(setpoint + incrementDegree, previousErrorLeft, integralLeft, true);
+      pidControl(
+        setpoint + incrementDegree,
+        previousErrorLeft,
+        integralLeft,
+        true
+      );
       pidControl(
         setpoint + incrementDegree,
         previousErrorRight,
@@ -197,7 +227,12 @@ function handleWalk(direction) {
       );
       break;
     case "backward":
-      pidControl(setpoint - incrementDegree, previousErrorLeft, integralLeft, true);
+      pidControl(
+        setpoint - incrementDegree,
+        previousErrorLeft,
+        integralLeft,
+        true
+      );
       pidControl(
         setpoint - incrementDegree,
         previousErrorRight,
@@ -206,7 +241,12 @@ function handleWalk(direction) {
       );
       break;
     case "left":
-      pidControl(setpoint + incrementDegree, previousErrorLeft, integralLeft, true);
+      pidControl(
+        setpoint + incrementDegree,
+        previousErrorLeft,
+        integralLeft,
+        true
+      );
       pidControl(
         setpoint - incrementDegree,
         previousErrorRight,
@@ -215,7 +255,12 @@ function handleWalk(direction) {
       );
       break;
     case "right":
-      pidControl(setpoint - incrementDegree, previousErrorLeft, integralLeft, true);
+      pidControl(
+        setpoint - incrementDegree,
+        previousErrorLeft,
+        integralLeft,
+        true
+      );
       pidControl(
         setpoint + incrementDegree,
         previousErrorRight,
@@ -227,9 +272,9 @@ function handleWalk(direction) {
 }
 
 function handleSetSensorAdj(value) {
-  enableSensorAdjustments = (value === "true" ? true : false);
-  console.log(enableSensorAdjustments)
-  if(enableSensorAdjustments === false){
+  enableSensorAdjustments = value === "true" ? true : false;
+  console.log(enableSensorAdjustments);
+  if (enableSensorAdjustments === false) {
     sendMQTTMessage(topics.output.servoRight, { value: 1500, source }); // Stop servos
     sendMQTTMessage(topics.output.servoLeft, { value: 1500, source });
   }
@@ -245,27 +290,6 @@ function handleStart() {
   console.log("Robot started.");
 }
 
-function handleSetHeight(height) {
-  heightAdjustmentInProgress = true;
-  if (controlLoopInterval) {
-    clearInterval(controlLoopInterval); // Pause the control loop
-    controlLoopInterval = null;
-  }
-
-  const newIndex = Object.keys(heightLevels).findIndex(key => key === height);
-  const prevIndex = Object.keys(heightLevels).findIndex(key => key === currentHeight);
-  const heightLevelDifference = newIndex - prevIndex;
-  console.log(`Height set to ${height}, previous height ${currentHeight}, difference: ${heightLevelDifference}`);
-  
-  adjustServos(heightLevels[height].bodyAngle);
-  currentHeight = height;
-
-  setTimeout(() => {
-    heightAdjustmentInProgress = false;
-    handleStart();
-  }, 1000);
-}
-
 function handleSetPIDParameter(param, value) {
   console.log(`Setting PID parameter ${param}:`, value);
   if (pidLeft && pidRight) {
@@ -273,7 +297,6 @@ function handleSetPIDParameter(param, value) {
     pidRight[param] = value;
   }
 }
-
 
 // Adjusted PID controller for each motor based on tilt angle direction
 function pidControl(currentAngle, previousError, integral, isLeftMotor) {
@@ -294,7 +317,7 @@ function handleSetIncrementDegree(value) {
   console.log(value);
   if (!isNaN(value)) {
     incrementDegree = value;
-    console.log(`Increment set to ${value}`)
+    console.log(`Increment set to ${value}`);
   } else {
     console.warn(`Invalid value for increment: ${value}`);
   }
@@ -305,38 +328,81 @@ async function setup() {
   startControlLoop();
 }
 
+// function handleSetHeight(height) {
+//   heightAdjustmentInProgress = true;
+//   if (controlLoopInterval) {
+//     clearInterval(controlLoopInterval); // Pause the control loop
+//     controlLoopInterval = null;
+//   }
 
+//   const newIndex = Object.keys(heightLevels).findIndex(key => key === height);
+//   const prevIndex = Object.keys(heightLevels).findIndex(key => key === currentHeight);
+//   const heightLevelDifference = newIndex - prevIndex;
+//   console.log(`Height set to ${height}, previous height ${currentHeight}, difference: ${heightLevelDifference}`);
 
+//   adjustServos(heightLevels[height].bodyAngle);
+//   currentHeight = height;
+
+//   setTimeout(() => {
+//     heightAdjustmentInProgress = false;
+//     handleStart();
+//   }, 1000);
+// }
 
 // Function to update motors based on separate outputs for left and right motors
 
-function gradualHeightAdjustment() {
-  const targetAngle = heightMap[targetHeight];
-  let currentAngle = servoAngles.left; // assuming both servos are adjusted similarly
-  const angleDifference = targetAngle - currentAngle;
+function handleSetHeight(newHeight) {
+  if (heightAdjustmentInProgress) return; // Prevent multiple adjustments at once
+  heightAdjustmentInProgress = true;
 
-  const steps = 10; // Number of steps to take during adjustment
-  const stepSize = angleDifference / steps;
+  if (controlLoopInterval) {
+    clearInterval(controlLoopInterval); // Pause the control loop
+    controlLoopInterval = null;
+  }
+
+  // Map height levels to angles
+  const heightLevels = {
+    low: 45, // Low height angle
+    mid: 90, // Mid height angle
+    high: 135, // High height angle
+  };
+
+  const newAngle = heightLevels[newHeight]; // Target angle for new height
+  const currentAngle = heightLevels[currentHeight]; // Current angle for the current height
+  const angleDifference = newAngle - currentAngle;
+
+  const steps = 10; // Number of steps to transition
+  const stepSize = angleDifference / steps; // Angle change per step
   let stepCount = 0;
 
+  // Gradual adjustment loop
   const adjustmentInterval = setInterval(() => {
-    currentAngle += stepSize;
-    servoAngles.left = currentAngle;
-    servoAngles.right = currentAngle; // assuming symmetric adjustment
+    const interpolatedAngle = currentAngle + stepCount * stepSize;
 
-    // Send updated servo angles
-    setServoAngles();
+    // Send updated servo angles with tilt correction
+    adjustServos(interpolatedAngle, newAngle);
 
     stepCount++;
 
-    if (stepCount >= steps) {
+    // Check if adjustment is complete
+    if (stepCount > steps) {
       clearInterval(adjustmentInterval);
-      heightAdjustmentInProgress = false; // Mark adjustment complete
+      currentHeight = newHeight; // Update the current height level
+      heightAdjustmentInProgress = false; // Mark adjustment as complete
+      handleStart(); // Resume control loop
     }
   }, 100); // Adjust every 100ms
 }
 
-///
+// Example Usage:
+// rotateServoToAngle(90, 50, 180); // Rotate 90 degrees at 50% speed with 180 degrees/second rotation speed
 
 initializeMQTT();
 setup();
+
+process.on("SIGINT", () => {
+  console.log("Shutting down...");
+  stopControlLoop();
+  client.end();
+  process.exit();
+});

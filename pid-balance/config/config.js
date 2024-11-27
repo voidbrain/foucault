@@ -15,9 +15,9 @@ const defaultConfig = {
   incrementDegree: 0,
   heightLevel: 'mid',
   pulseHeightLevels: {
-    low: { basePulseWidth: 500 },
-    mid: { basePulseWidth: 1500 },
-    high: { basePulseWidth: 2500 },
+    low: { angle: 0 },
+    mid: { angle: 20 },
+    high: { angle: 40 },
   },
   isSensorAdjustmentEnabled: true,
   topics: {
