@@ -60,7 +60,9 @@ Object.keys(topics.input).forEach(topic => {
 // Listen for 'mqtt-publish' events from the frontend
 io.on('connection', (socket) => {
   socket.on('message', (data) => {
+    console.log(data)
     const { topic, value, ...source } = data;
+    console.log(topic, value)
 
     mqttClient.publish(topic, value, (err) => {
       if (err) {

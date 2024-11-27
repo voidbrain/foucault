@@ -60,7 +60,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   config: any = {};
   levelsArray: string[] = [];
-  accelData = { accelData: { accelX: 0, accelY: 0, accelZ: 0 } };
+  accelData = { accelX: 0, accelY: 0, accelZ: 0 };
   tiltAngles = { xAngle: 0, yAngle: 0 };
 
   leftMotorPWM: null | { value: number } = null;
@@ -248,18 +248,19 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
         switch (topic) {
           case this.topics.input['accelData']:
-            parsedMessage = JSON.parse(data);
+            parsedMessage = JSON.parse(data.toString());
             this.handleAccelData(
-              parsedMessage as {
-                accelData: { accelX: number; accelY: number; accelZ: number };
+              parsedMessage.value as {
+                 accelX: number; accelY: number; accelZ: number 
               }
             );
             break;
 
           case this.topics.input['tiltAngles']:
-            parsedMessage = JSON.parse(data);
+            parsedMessage = JSON.parse(data.toString());
+            console.log(topic,parsedMessage.value)
             this.handleTiltAngles(
-              parsedMessage.tiltAngles as { xAngle: number; yAngle: number }
+              parsedMessage.value as { xAngle: number; yAngle: number }
             );
             break;
 
@@ -322,9 +323,8 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
       });
   }
 
-  handleAccelData(data: {
-    accelData: { accelX: number; accelY: number; accelZ: number };
-  }) {
+  handleAccelData(
+    data: { accelX: number; accelY: number; accelZ: number }) {
     this.accelData = data;
   }
 

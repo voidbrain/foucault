@@ -5,6 +5,7 @@ const { sendMQTTMessage, initializeMQTT } = require("./mqtt/mqttClient.js");
 const PIDController = require("./pid/pidController.js");
 const {getConfig} = require("./config/config.js");
 
+const source = "pid";
 let pid;
 let enableSensorAdjustments = true;
 let controlLoopInterval = null;
@@ -29,7 +30,7 @@ async function getTiltAngles() {
     const xAngle = Math.atan2(accelYg, accelZg) * (180 / Math.PI);
     const yAngle = Math.atan2(accelXg, accelZg) * (180 / Math.PI);
     const tiltAngles = { xAngle, yAngle };
-    const source = "pid";
+    
 
     sendMQTTMessage(topics.output.accelData, { value: accelData, source });
     sendMQTTMessage(topics.output.tiltAngles, { value: tiltAngles, source});
@@ -52,11 +53,11 @@ function setMotorSpeeds(leftSpeed, rightSpeed) {
   );
 
   sendMQTTMessage(topics.output.motorLeft, {
-    source: "pid",
+    source,
     value: clampedLeftOutput,
   });
   sendMQTTMessage(topics.output.motorRight, {
-    source: "pid",
+    source,
     value: clampedRightOutput,
   });
 }
@@ -80,11 +81,11 @@ function adjustServos(xAngle) {
   );
   // Publish servo pulse width values via MQTT
   sendMQTTMessage(topics.output.servoLeft, {
-    source: "pid",
+    source,
     value: leftPulseWidth,
   });
   sendMQTTMessage(topics.output.servoRight, {
-    source: "pid",
+    source,
     value: rightPulseWidth,
   });
 }
@@ -120,6 +121,8 @@ async function startControlLoop() {
 }
 
 function stopControlLoop() {
+  sendMQTTMessage(topics.output.servoRight, { value: 1500, source }); // Stop servos
+  sendMQTTMessage(topics.output.servoLeft, { value: 1500, source });
   if (controlLoopInterval) {
     clearInterval(controlLoopInterval);
     controlLoopInterval = null;
@@ -225,6 +228,11 @@ function handleWalk(direction) {
 
 function handleSetSensorAdj(value) {
   enableSensorAdjustments = (value === "true" ? true : false);
+  console.log(enableSensorAdjustments)
+  if(enableSensorAdjustments === false){
+    sendMQTTMessage(topics.output.servoRight, { value: 1500, source }); // Stop servos
+    sendMQTTMessage(topics.output.servoLeft, { value: 1500, source });
+  }
 }
 
 function handleStop() {

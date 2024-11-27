@@ -103,9 +103,16 @@ function sendMQTTMessage(topic, message) {
 
 // Handle incoming MQTT messages
 mqttClient.on('message', (topic, message) => {
-  const stringMessage = message.toString();
-  const jsonObj = JSON.parse(stringMessage);
-  const value = jsonObj?.value;
+  let value
+  
+    const stringMessage = message.toString();
+  if(isNaN(+stringMessage)){
+    const jsonObj = JSON.parse(stringMessage);
+    value = jsonObj?.value;
+  } else {
+    
+    value = stringMessage;
+  }
   handleMqttMessage(topic, value);
 });
 
