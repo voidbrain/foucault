@@ -8,7 +8,7 @@ const {getConfig} = require("./config/config.js");
 
 let pidLeft;
 let pidRight;
-
+let enableSensorAdjustments = true;
 let controlLoopInterval = null;
 let topics;
 
@@ -92,11 +92,13 @@ async function startControlLoop() {
   controlLoopInterval = setInterval(async () => {
     const tiltAngles = await getTiltAngles();
 
-    const leftOutput = pidLeft.compute(0, tiltAngles.xAngle);
-    const rightOutput = pidRight.compute(0, tiltAngles.yAngle);
+    if(enableSensorAdjustments === true){
+      const leftOutput = pidLeft.compute(0, tiltAngles.xAngle);
+      const rightOutput = pidRight.compute(0, tiltAngles.yAngle);
 
-    setMotorSpeeds(leftOutput, rightOutput);
-    adjustServos(tiltAngles.xAngle);
+      setMotorSpeeds(leftOutput, rightOutput);
+      adjustServos(tiltAngles.xAngle);
+    }
   }, 100);
 }
 
@@ -167,7 +169,8 @@ function handleWalk(value) {
 }
 
 function handleSetSensorAdj(value) {
-  console.log("Setting sensor adjustments:", value);
+  enableSensorAdjustments = (value === "true" ? true : false);
+  
   // Add logic for sensor adjustments here
 }
 
