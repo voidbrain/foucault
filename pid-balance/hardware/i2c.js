@@ -1,6 +1,7 @@
 const RealI2C = require("i2c-bus");
 const MockI2C = require("../mocks/i2c-bus.cjs"); 
 const { getConfig } = require("../config/config.js");
+const fs = require("fs");
 
 const bus = isRaspberryPi() ? RealI2C.openSync(1) : MockI2C.openSync("/dev/i2c-mock");
 

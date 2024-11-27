@@ -29,8 +29,8 @@ async function getTiltAngles() {
     const source = "pid";
     sendMQTTMessage(topics.output.tiltAngles, { tiltAngles, source});
 
-    console.log(topics.output.accelData, { accelData });
-    console.log(topics.output.tiltAngles, { xAngle, yAngle });
+    // console.log(topics.output.accelData, { accelData });
+    // console.log(topics.output.tiltAngles, { xAngle, yAngle });
 
     return { xAngle, yAngle };
   } catch (error) {
@@ -41,9 +41,10 @@ async function getTiltAngles() {
 
 function setMotorSpeeds(leftSpeed, rightSpeed) {
   sendMQTTMessage(topics.output.motorLeft, leftSpeed);
-  console.log(topics.output.motorLeft, leftSpeed)
   sendMQTTMessage(topics.output.motorRight, rightSpeed);
-  console.log(topics.output.motorLeft, leftSpeed)
+
+  // console.log(topics.output.motorLeft, leftSpeed)
+  // console.log(topics.output.motorLeft, leftSpeed)
 }
 
 async function startControlLoop() {
