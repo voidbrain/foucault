@@ -33,7 +33,6 @@ export class SocketService {
 
       // Listen for the 'mqtt-message' event
       this.socket.on('mqtt-message', (message: MqttMessage) => {
-        console.log('Received mqtt-message:', message);
         this.mqttMessageSubject.next(message); // Emit the mqtt-message event
       });
 

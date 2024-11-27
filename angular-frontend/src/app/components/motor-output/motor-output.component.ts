@@ -35,12 +35,12 @@ import {
               <h2>Motor PWM</h2>
               <div id="motor-content">
                 <span id="left-motor">
-                  Left Motor PWM: 
+                  Left Motor PWM:
                   <span id="left-motor-value">{{ leftMotorPWM?.value || '_' }}</span>
                 </span>
                 <br />
                 <span id="right-motor">
-                  Right Motor PWM: 
+                  Right Motor PWM:
                   <span id="right-motor-value">{{ rightMotorPWM?.value || '_' }}</span>
                 </span>
               </div>
@@ -49,12 +49,12 @@ import {
               <h2>Servo Pulse</h2>
               <div id="servo-content">
                 <span id="left-servo">
-                  Left Servo Pulse: 
+                  Left Servo Pulse:
                   <span id="left-servo-value">{{ leftServoPulse?.value || '_' }}</span>µs
                 </span>
                 <br />
                 <span id="right-servo">
-                  Right Servo Pulse: 
+                  Right Servo Pulse:
                   <span id="right-servo-value">{{ rightServoPulse?.value || '_' }}</span>µs
                 </span>
               </div>

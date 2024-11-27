@@ -3,6 +3,7 @@ import {
   AfterViewInit,
   ViewChild,
   OnDestroy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ConfigService, TopicsInterface } from '../services/config/config.service';
@@ -74,7 +75,8 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   constructor(
     private configService: ConfigService,
-    private socketService: SocketService
+    private socketService: SocketService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   heightLevelIndex!: number;
@@ -214,22 +216,24 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
         case this.topics.input["motorLeft"]:
           parsedMessage = JSON.parse(data);
-          this.leftMotorPWM = parsedMessage
+          this.leftMotorPWM = { value: parsedMessage }
           break;
 
         case this.topics.input["motorRight"]:
           parsedMessage = JSON.parse(data);
-          this.rightMotorPWM = parsedMessage
+          this.rightMotorPWM = { value: parsedMessage }
           break;
 
         case this.topics.input["servoLeft"]:
           parsedMessage = JSON.parse(data);
-          this.leftServoPulse = parsedMessage;
+          this.leftServoPulse = { value: parsedMessage };
+          console.log(parsedMessage)
           break;
 
         case this.topics.input["servoRight"]:
           parsedMessage = JSON.parse(data);
-          this.rightServoPulse = parsedMessage;
+          this.rightServoPulse = { value: parsedMessage };
+          console.log(parsedMessage)
           break;
         case this.topics.input["console"]:
           parsedMessage = JSON.parse(data);
