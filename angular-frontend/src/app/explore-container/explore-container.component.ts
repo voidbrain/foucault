@@ -192,6 +192,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   }
 
   setupSocket() {
+    console.log("setupsocket")
     this.socketService.connect(this.isRaspberryPi() ? 'http://foucault:8080': 'http://localhost:8080');
 
     this.socketService.onEvent('connect').subscribe(() => {
@@ -199,8 +200,9 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
     });
 
     this.socketService.onEvent<{ topic: string; data: any }>('mqtt-message').subscribe((message) => {
+      console.log(message);
       //
-        const {
+      const {
         topic,
         data,
       } = message;

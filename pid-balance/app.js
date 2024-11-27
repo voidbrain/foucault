@@ -80,7 +80,7 @@ async function setupMQTTHandlers() {
   topics = config.topics;
 
   client.on("message", (topic, message) => {
-    const parsedMessage = JSON.parse(message.toString());
+    const parsedMessage = message.toString();
     switch (topic) {
       case topics.input.walk:
         handleWalk(parsedMessage);

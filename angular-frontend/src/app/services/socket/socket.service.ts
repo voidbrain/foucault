@@ -12,7 +12,8 @@ export class SocketService {
 
   connect(url: string): void {
     if (!this.socket) {
-      this.socket = io(url);
+      this.socket = io(url, {
+        transports: ['websocket', 'polling']});
     }
   }
 

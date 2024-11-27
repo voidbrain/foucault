@@ -1,3 +1,5 @@
+//frontend 
+
 const express = require('express');
 const app = express();
 const mqtt = require('mqtt');
@@ -89,6 +91,11 @@ mqttClient.on('message', (topic, message) => {
 app.get('/detect', (req, res) => {
   // Add object detection code here
   res.send('Object detection started');
+});
+
+app.use((req, res, next) => {
+  console.log('Request Origin:', req.get('Origin'));
+  next();
 });
 
 // Start the HTTP server
