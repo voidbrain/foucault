@@ -1,7 +1,8 @@
-const i2c = require("i2c-bus");
+const RealI2C = require("i2c-bus");
+const MockI2C = require("../mocks/i2c-bus.cjs"); 
 const { getConfig } = require("../config/config.js");
 
-const bus = i2c.openSync(1);
+const bus = isRaspberryPi() ? RealI2C.openSync(1) : MockI2C.openSync("/dev/i2c-mock");
 
 
 async function readAccelerometer() {
@@ -25,6 +26,29 @@ async function readAccelerometer() {
       reject("Failed to read accelerometer data.");
     }
   });
+}
+
+function isRaspberryPi() {
+  try {
+    // Read /proc/cpuinfo
+    const cpuInfo = fs.readFileSync('/proc/cpuinfo', 'utf8');
+    if (cpuInfo.includes('Raspberry Pi')) {
+      return true;
+    }
+
+    // Read /sys/firmware/devicetree/base/model
+    const modelPath = '/sys/firmware/devicetree/base/model';
+    if (fs.existsSync(modelPath)) {
+      const model = fs.readFileSync(modelPath, 'utf8').toLowerCase();
+      if (model.includes('raspberry pi')) {
+        return true;
+      }
+    }
+  } catch (error) {
+    console.error('Error checking Raspberry Pi:', error);
+  }
+
+  return false;
 }
 
 module.exports = { readAccelerometer };
