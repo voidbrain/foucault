@@ -54,7 +54,7 @@ function adjustServos(xAngle) {
   const basePulseWidth = heightLevels[currentHeight]?.basePulseWidth;
 
   // Calculate height difference from the tilt angle
-  const heightDifference = xAngle * 0.1;
+  const heightDifference = +xAngle * 0.1;
   
   // Adjust left and right pulse widths
   const leftPulseWidth = Math.max(
@@ -65,7 +65,7 @@ function adjustServos(xAngle) {
     500,
     Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
   );
-
+console.log(heightLevels, currentHeight)
   // Publish servo pulse width values via MQTT
   sendMQTTMessage(topics.output.servoLeft, {
     source: "pid",
@@ -80,7 +80,7 @@ function adjustServos(xAngle) {
 async function startControlLoop() {
   const config = await getConfig();
   currentHeight = config.heightLevel;
-  heightLevels = config.heightLevels;
+  heightLevels = config.pulseHeightLevels;
 
   pidLeft = new PIDController(config.pidConfig.Kp, config.pidConfig.Ki, config.pidConfig.Kd);
   pidRight = new PIDController(config.pidConfig.Kp, config.pidConfig.Ki, config.pidConfig.Kd);

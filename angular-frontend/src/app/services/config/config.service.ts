@@ -57,6 +57,10 @@ export class ConfigService {
     }
   };
 
+  constructor(){
+    
+  }
+
   getTopics() {
     return this.topics;
   }
@@ -64,7 +68,10 @@ export class ConfigService {
   // Get PID config from the server
   async getConfig(): Promise<any> {
     try {
-      const url = this.isRaspberryPi() ? this.dockerUrl : this.localUrl;
+      const isPi: boolean = await this.isRaspberryPi();
+      console.log(isPi)
+      const url = isPi ? this.dockerUrl : this.localUrl ;
+
       const response = await axios.get(url, {
         withCredentials: true
       });
@@ -75,10 +82,14 @@ export class ConfigService {
     }
   }
 
-  isRaspberryPi(){
-    const userAgent = navigator.userAgent.toLowerCase();
-    // Check for Raspberry keyword in user-agent
-    const isRaspberry = userAgent.includes('raspberry');
-    return isRaspberry;
+  async isRaspberryPi(): Promise<boolean> {
+    try {
+      const response = await axios.get<{ isRaspberryPi: boolean }>('http://localhost:8080/is-raspberry-pi');
+      return response.data.isRaspberryPi;
+    } catch (error) {
+      console.error('Error checking Raspberry Pi:', error);
+      return false;
+    }
   }
+  
 }

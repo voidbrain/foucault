@@ -14,7 +14,7 @@ const defaultConfig = {
   },
   incrementDegree: 0,
   heightLevel: 'mid',
-  heightLevels: {
+  pulseHeightLevels: {
     low: { basePulseWidth: 500 },
     mid: { basePulseWidth: 1500 },
     high: { basePulseWidth: 2500 },

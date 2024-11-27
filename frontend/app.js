@@ -2,10 +2,11 @@
 
 const express = require('express');
 const app = express();
+const fs = require('fs');
 const mqtt = require('mqtt');
 const http = require('http');
 const socketIo = require('socket.io');
-const path = require('path');
+const cors = require('cors');
 
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -87,10 +88,35 @@ mqttClient.on('message', (topic, message) => {
   io.emit('mqtt-message', { topic, data: parsedMessage });
 });
 
+app.use(cors({ origin: ['http://localhost:8084', 'http://foucault:8084', 'http://angular-frontend-service:8082'] }));
+
 // Define a route for triggering object detection (replace with your logic)
 app.get('/detect', (req, res) => {
   // Add object detection code here
   res.send('Object detection started');
+});
+
+app.get('/is-raspberry-pi', (req, res) => {
+  try {
+    // Read /proc/cpuinfo
+    const cpuInfo = fs.readFileSync('/proc/cpuinfo', 'utf8');
+    if (cpuInfo.includes('Raspberry Pi')) {
+      return res.json({ isRaspberryPi: true });
+    }
+
+    // Read /sys/firmware/devicetree/base/model
+    const modelPath = '/sys/firmware/devicetree/base/model';
+    if (fs.existsSync(modelPath)) {
+      const model = fs.readFileSync(modelPath, 'utf8').toLowerCase();
+      if (model.includes('raspberry pi')) {
+        return res.json({ isRaspberryPi: true });
+      }
+    }
+  } catch (error) {
+    console.error('Error checking Raspberry Pi:', error);
+  }
+
+  res.json({ isRaspberryPi: false });
 });
 
 app.use((req, res, next) => {

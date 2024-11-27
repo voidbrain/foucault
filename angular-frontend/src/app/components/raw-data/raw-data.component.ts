@@ -39,9 +39,9 @@ import {
                 [color]="isSensorAdjustmentEnabled ? 'primary' : 'secondary'"
                 id="accelData-content">
                 <ng-container *ngIf="accelData; else loadingAccel">
-                  X: {{ accelData.accelData.accelX || null }} m/s<sup>2</sup> <br />
-                  Y: {{ accelData.accelData.accelY || null }} m/s<sup>2</sup> <br />
-                  Z: {{ accelData.accelData.accelZ || null }} m/s<sup>2</sup>
+                  X: {{ accelData.accelData.accelX | number:'1.4-4' || null }} m/s<sup>2</sup> <br />
+                  Y: {{ accelData.accelData.accelY | number:'1.4-4' || null }} m/s<sup>2</sup> <br />
+                  Z: {{ accelData.accelData.accelZ | number:'1.4-4' || null }} m/s<sup>2</sup>
                 </ng-container>
                 <ng-template #loadingAccel>Loading...</ng-template>
               </ion-text>
@@ -52,8 +52,8 @@ import {
                 [color]="isSensorAdjustmentEnabled ? 'primary' : 'secondary'"
                 id="tiltAngles-content">
                 <ng-container *ngIf="tiltAngles; else loadingAngles">
-                  X: {{ tiltAngles.xAngle }}° <br />
-                  Y: {{ tiltAngles.yAngle }}°
+                  X: {{ tiltAngles.xAngle | number:'1.4-4' }}° <br />
+                  Y: {{ tiltAngles.yAngle | number:'1.4-4' }}°
                 </ng-container>
                 <ng-template #loadingAngles>Loading...</ng-template>
               </ion-text>
