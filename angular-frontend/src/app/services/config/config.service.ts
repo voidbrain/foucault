@@ -15,6 +15,8 @@ export interface TopicsInterface {
   providedIn: 'root'
 })
 export class ConfigService {
+  //private configUrl = 'http://foucault:3004/config'
+
   private localUrl = 'http://localhost:3004/config';
   private dockerUrl = 'http://foucault:3004/config';
 

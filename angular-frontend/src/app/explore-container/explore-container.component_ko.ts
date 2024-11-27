@@ -1,3 +1,5 @@
+import { io, Socket } from 'socket.io-client';
+
 import {
   Component,
   AfterViewInit,
@@ -53,6 +55,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   @ViewChild(ConsoleComponent) consoleComponent: ConsoleComponent | undefined;
   isConsoleAutoScrollEnabled: boolean = true;
 
+  socket: Socket | null = null;
   socketStatus: string = 'Connecting...';
 
   config: any = {};
@@ -189,10 +192,19 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   setupSocket() {
     this.socketService.connect('http://localhost:8080');
 
-    // this.socketService.onEvent('connect', () => {
-    //   this.socketStatus = 'Connected';
-    // });
-    this.socketService.onEvent('connect').subscribe(() => {
+    if (this.socket === null) {
+      this.socket = io('http://localhost:8080');
+    }
+
+    this.socket.on('connect', () => {
+      console.log("connected1")
+    });
+
+    this.socketService.connect('http://localhost:8080');
+
+    // Subscribe to the connection event
+    this.socketService.onConnect().subscribe(() => {
+      console.log('connected2');
       this.socketStatus = 'Connected';
     });
 
@@ -265,7 +277,6 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
           break;
       }
-      //
     });
   }
 

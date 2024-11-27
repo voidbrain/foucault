@@ -1,3 +1,4 @@
+
 import {
   Component,
   AfterViewInit,
@@ -265,7 +266,6 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
           break;
       }
-      //
     });
   }
 
