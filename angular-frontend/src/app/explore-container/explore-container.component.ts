@@ -16,10 +16,6 @@ import {
   IonRow,
   IonGrid,
   IonCol,
-  IonCard,
-  IonCardContent,
-  IonCardTitle,
-  IonCardHeader
 } from '@ionic/angular/standalone';
 import { ControlComponent } from '../components/control/control.component';
 import { ConsoleComponent } from '../components/console/console.component';
@@ -45,10 +41,6 @@ import { MotorOutputComponent } from '../components/motor-output/motor-output.co
     IonRow,
     IonGrid,
     IonCol,
-    IonCard,
-    IonCardContent,
-    IonCardTitle,
-    IonCardHeader,
     CommonModule,
   ],
 })
@@ -212,7 +204,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   }
   setupSocket() {
     if (this.socket === null) {
-      this.socket = io('http://foucault:8080');
+      this.socket = io('http://localhost:8080');
     }
 
     this.socket.on('connect', () => {
@@ -225,7 +217,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
         data,
       } = message;
       let parsedMessage;
-      
+
       switch (topic) {
         case this.topics.input["accelData"]:
           parsedMessage = JSON.parse(data);
@@ -388,6 +380,13 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.socket?.disconnect();
+  }
+
+  isRaspberryPi(){
+    const userAgent = navigator.userAgent.toLowerCase();
+    // Check for Raspberry keyword in user-agent
+    const isRaspberry = userAgent.includes('raspberry');
+    return isRaspberry;
   }
 
 }
