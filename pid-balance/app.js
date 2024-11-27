@@ -1,3 +1,5 @@
+// app.js
+
 const { readAccelerometer } = require("./hardware/i2c.js");
 const { sendMQTTMessage, initializeMQTT } = require("./mqtt/mqttClient.js");
 const PIDController = require("./pid/pidController.js");
@@ -72,10 +74,100 @@ function stopControlLoop() {
   }
 }
 
-async function setup() {
+async function setupMQTTHandlers() {
+  client = await initializeMQTT();
   const config = await getConfig();
   topics = config.topics;
+
+  client.on("message", (topic, message) => {
+    const parsedMessage = JSON.parse(message.toString());
+    switch (topic) {
+      case topics.input.walk:
+        handleWalk(parsedMessage);
+        break;
+      case topics.input.enableSensorAdjustments:
+        handleSetSensorAdj(parsedMessage);
+        break;
+      case topics.input.stop:
+        handleStop();
+        break;
+      case topics.input.start:
+        handleStart();
+        break;
+      case topics.input.setHeight:
+        handleSetHeight(parsedMessage);
+        break;
+      case topics.input.setKp:
+        handleSetPIDParameter("Kp", parsedMessage);
+        break;
+      case topics.input.setKi:
+        handleSetPIDParameter("Ki", parsedMessage);
+        break;
+      case topics.input.setKd:
+        handleSetPIDParameter("Kd", parsedMessage);
+        break;
+      case topics.input.setIncrementDegree:
+        handleSetIncrementDegree(parsedMessage);
+        break;
+      default:
+        console.warn(`Unknown topic: ${topic}`);
+    }
+  });
+
+  // Subscribe to all input topics
+  Object.values(topics.input).forEach((topic) => {
+    client.subscribe(topic, (err) => {
+      if (err) {
+        console.error(`Failed to subscribe to topic: ${topic}`, err);
+      } else {
+        console.log(`Subscribed to topic: ${topic}`);
+      }
+    });
+  });
+}
+
+// Define handlers for each topic
+function handleWalk(value) {
+  console.log("Handling walk:", value);
+  // Add logic for walking here
+}
+
+function handleSetSensorAdj(value) {
+  console.log("Setting sensor adjustments:", value);
+  // Add logic for sensor adjustments here
+}
+
+function handleStop() {
+  stopControlLoop();
+  console.log("Robot stopped.");
+}
+
+function handleStart() {
+  startControlLoop();
+  console.log("Robot started.");
+}
+
+function handleSetHeight(value) {
+  console.log("Setting height:", value);
+  // Add logic to adjust height here
+}
+
+function handleSetPIDParameter(param, value) {
+  console.log(`Setting PID parameter ${param}:`, value);
+  if (pidLeft && pidRight) {
+    pidLeft[param] = value;
+    pidRight[param] = value;
+  }
+}
+
+function handleSetIncrementDegree(value) {
+  console.log("Setting increment degree:", value);
+  // Add logic for increment degree adjustment here
+}
+
+async function setup() {
+  await setupMQTTHandlers();
+  startControlLoop();
 }
 
 setup();
-startControlLoop();
