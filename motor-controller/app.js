@@ -103,7 +103,9 @@ function sendMQTTMessage(topic, message) {
 
 // Handle incoming MQTT messages
 mqttClient.on('message', (topic, message) => {
-  const value = message.toString();
+  const stringMessage = message.toString();
+  const jsonObj = JSON.parse(stringMessage);
+  const value = jsonObj?.value;
   handleMqttMessage(topic, value);
 });
 

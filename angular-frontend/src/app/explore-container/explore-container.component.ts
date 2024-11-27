@@ -265,12 +265,12 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
           case this.topics.input['motorLeft']:
             parsedMessage = JSON.parse(data);
-            this.leftMotorPWM = { value: parsedMessage };
+            this.leftMotorPWM = parsedMessage;
             break;
 
           case this.topics.input['motorRight']:
             parsedMessage = JSON.parse(data);
-            this.rightMotorPWM = { value: parsedMessage };
+            this.rightMotorPWM = parsedMessage;
             break;
 
           case this.topics.input['servoLeft']:
