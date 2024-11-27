@@ -6,7 +6,7 @@ const mockI2cBus = {
       writeI2cBlockSync: () => console.log("mock writeI2cBlockSync called"),
       
       readI2cBlockSync: (address, register, length, buffer) => {
-        console.log(`mock readI2cBlockSync called for address ${address}, register ${register}, length ${length}`);
+        // console.log(`mock readI2cBlockSync called for address ${address}, register ${register}, length ${length}`);
         
         // Simulate reading data into the buffer
         for (let i = 0; i < length; i++) {

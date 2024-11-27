@@ -1,4 +1,3 @@
-import { io, Socket } from 'socket.io-client';
 import {
   Component,
   AfterViewInit,
@@ -16,16 +15,14 @@ import {
   IonRow,
   IonGrid,
   IonCol,
-  IonCard,
-  IonCardContent,
-  IonCardTitle,
-  IonCardHeader
 } from '@ionic/angular/standalone';
 import { ControlComponent } from '../components/control/control.component';
 import { ConsoleComponent } from '../components/console/console.component';
 import { ThreejsComponent } from '../components/threejs/threejs.component';
 import { RawDataComponent } from '../components/raw-data/raw-data.component';
 import { MotorOutputComponent } from '../components/motor-output/motor-output.component';
+
+import { SocketService } from '../services/socket/socket.service';
 
 @Component({
   standalone: true,
@@ -45,10 +42,6 @@ import { MotorOutputComponent } from '../components/motor-output/motor-output.co
     IonRow,
     IonGrid,
     IonCol,
-    IonCard,
-    IonCardContent,
-    IonCardTitle,
-    IonCardHeader,
     CommonModule,
   ],
 })
@@ -57,7 +50,6 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   @ViewChild(ConsoleComponent) consoleComponent: ConsoleComponent | undefined;
   isConsoleAutoScrollEnabled: boolean = true;
 
-  socket: Socket | null = null;
   socketStatus: string = 'Connecting...';
 
   config: any = {};
@@ -79,7 +71,8 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   constructor(
     private cdr: ChangeDetectorRef,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private socketService: SocketService
   ) {}
 
   heightLevelIndex!: number;
@@ -149,83 +142,70 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
   updateKp(Kp: number){
     this.config.Kp = Kp;
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setKp"], value: Kp.toString(), souce: 'Angular FE' });
-    }
+    this.socketService.emit('message', { topic: this.topics.output["setKp"], value: Kp.toString(), souce: 'Angular FE' });
   }
 
   updateKi(Ki: number){
     this.config.Ki = Ki;
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setKi"], value: Ki.toString(), souce: 'Angular FE' });
-    }
+    this.socketService.emit('message', { topic: this.topics.output["setKi"], value: Ki.toString(), souce: 'Angular FE' });
   }
 
   updateKd(Kd: number){
     this.config.Kd = Kd;
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setKd"], value: Kd.toString(), souce: 'Angular FE' });
-    }
+    this.socketService.emit('message', { topic: this.topics.output["setKd"], value: Kd.toString(), souce: 'Angular FE' });
   }
 
   updateIncrementDegree(incrementDegree: number){
     this.config.incrementDegree = incrementDegree;
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setincrementDegree"], value: incrementDegree.toString(), source: 'Angular FE' });
-    }
+    this.socketService.emit('message', { topic: this.topics.output["setincrementDegree"], value: incrementDegree.toString(), source: 'Angular FE' });
   }
 
   onServoLeftChanged(value: number){
-    if (this.socket !== null) {
-      const obj = { topic: this.topics.output["setServoLeft"], value: value.toString(), source: 'Angular FE' };
-      console.log(obj)
-      this.socket.emit('message', obj);
-    }
+    const obj = { topic: this.topics.output["setServoLeft"], value: value.toString(), source: 'Angular FE' };
+    console.log(obj)
+    this.socketService.emit('message', obj);
   }
 
   onServoRightChanged(value: number){
-    if (this.socket !== null) {
-      const obj = { topic: this.topics.output["setServoRight"], value: value.toString(), source: 'Angular FE' };
-      console.log(obj)
-      this.socket.emit('message', obj);
-    }
+    const obj = { topic: this.topics.output["setServoRight"], value: value.toString(), source: 'Angular FE' };
+    console.log(obj)
+    this.socketService.emit('message', obj);
   }
 
   onMotorLeftChanged(value: number){
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setMotorLeft"], value: value.toString(), source: 'Angular FE' });
-    }
+    this.socketService.emit('message', { topic: this.topics.output["setMotorLeft"], value: value.toString(), source: 'Angular FE' });
   }
 
   onMotorRightChanged(value: number){
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["setMotorRight"], value: value.toString(), source: 'Angular FE' });
-    }
+    this.socketService.emit('message', { topic: this.topics.output["setMotorRight"], value: value.toString(), source: 'Angular FE' });
   }
 
   startCAMERAObjectDetection() {
-    if (this.socket !== null) {
-      this.socket.emit('startObjectDetection');
-    } else {
-      console.warn('Socket is null');
-    }
+    // this.socketService.emit('startObjectDetection');
   }
-  setupSocket() {
-    if (this.socket === null) {
-      this.socket = io('http://foucault:8080');
-    }
 
-    this.socket.on('connect', () => {
+  isRaspberryPi(){
+    const userAgent = navigator.userAgent.toLowerCase();
+    // Check for Raspberry keyword in user-agent
+    const isRaspberry = userAgent.includes('raspberry');
+    return isRaspberry;
+  }
+
+  setupSocket() {
+    this.socketService.connect(this.isRaspberryPi() ? 'http://foucault:8080': 'http://localhost:8080');
+
+    this.socketService.onEvent('connect').subscribe(() => {
       this.socketStatus = 'Connected';
     });
 
-    this.socket.on('mqtt-message', (message: { topic: string; data: any }) => {
-      const {
+    this.socketService.onEvent<{ topic: string; data: any }>('mqtt-message').subscribe((message) => {
+      //
+        const {
         topic,
         data,
       } = message;
       let parsedMessage;
-      
+
       switch (topic) {
         case this.topics.input["accelData"]:
           parsedMessage = JSON.parse(data);
@@ -290,6 +270,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
           console.log(`Unknown topic: ${topic}, ${parsedMessage}`);
           break;
       }
+      //
     });
   }
 
@@ -340,44 +321,25 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   }
 
   sendControlCommand(command: string, direction: string) {
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: command, value: direction,source: 'Angular FE' });
-    } else {
-      console.warn('Socket is null');
-    }
+
+    this.socketService.emit('message', { topic: command, value: direction, source: 'Angular FE' });
   }
 
   sendSetHeightCommand(height: string) {
-    if (this.socket !== null) {
-        this.socket.emit('message', { topic: this.topics.output["setHeight"], value: height, source: 'Angular FE' });
 
-    } else {
-      console.warn('Socket is null');
-    }
+    this.socketService.emit('message', { topic: this.topics.output["setHeight"], value: height, source: 'Angular FE' });
   }
 
   sendStopCommand() {
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["stop"], source: 'Angular FE' });
-    } else {
-      console.warn('Socket is null');
-    }
+    this.socketService.emit('message', { topic: this.topics.output["stop"], source: 'Angular FE' });
   }
 
   sendStartCommand() {
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: this.topics.output["start"], source: 'Angular FE' });
-    } else {
-      console.warn('Socket is null');
-    }
+      this.socketService.emit('message', { topic: this.topics.output["start"], source: 'Angular FE' });
   }
 
   sendEnableSensorCommand(topic: string, isEnabled: boolean) {
-    if (this.socket !== null) {
-      this.socket.emit('message', { topic: topic, value:isEnabled.toString(),  source: 'Angular FE' });
-    } else {
-      console.warn('Socket is null');
-    }
+    this.socketService.emit('message', { topic: topic, value:isEnabled.toString(),  source: 'Angular FE' });
   }
 
   logToConsole(topic: string, message: string, source: string) {
@@ -387,7 +349,7 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.socket?.disconnect();
+    this.socketService?.disconnect();
   }
 
 }

@@ -101,7 +101,7 @@ async function getTiltAngles() {
     const xAngle = Math.atan2(accelY, accelZ) * (180 / Math.PI);
     const yAngle = Math.atan2(accelX, accelZ) * (180 / Math.PI);
 
-    console.log(`X Angle: ${xAngle}, Y Angle: ${yAngle}`);
+    // console.log(`X Angle: ${xAngle}, Y Angle: ${yAngle}`);
     return { xAngle, yAngle };
   } catch (error) {
     console.error(`Error getting tilt angles: ${error}`);

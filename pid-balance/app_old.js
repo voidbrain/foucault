@@ -169,7 +169,8 @@ mqttClient.on("message", (topic, value) => {
 async function fetchConfig() {
   try {
     console.log("Fetching configuration...");
-    const response = await axios.get("http://config-service:3004/config", {
+    // const response = await axios.get("http://config-service:3004/config", {
+    const response = await axios.get("http://localhost:3004/config", {
       withCredentials: true,
     });
     const config = response.data;

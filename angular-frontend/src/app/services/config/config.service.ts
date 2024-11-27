@@ -15,8 +15,9 @@ export interface TopicsInterface {
   providedIn: 'root'
 })
 export class ConfigService {
-  private configUrl = 'http://foucault:3004/config'
-  
+  private localUrl = 'http://localhost:3004/config';
+  private dockerUrl = 'http://foucault:3004/config';
+
   private topics = {
     input: {
       console: 'console/log',
@@ -45,12 +46,12 @@ export class ConfigService {
       setKi: "pid/set/Ki",
       setKd: "pid/set/Kd",
       setincrementDegree: "pid/set/increment",
-      
+
       setServoRight:  "controller/servoPulseWidth/right",
       setServoLeft: "controller/servoPulseWidth/left",
       setMotorRight:  "controller/motorPWM/right",
       setMotorLeft: "controller/motorPWM/left"
-      
+
     }
   };
 
@@ -61,7 +62,8 @@ export class ConfigService {
   // Get PID config from the server
   async getConfig(): Promise<any> {
     try {
-      const response = await axios.get(this.configUrl, {
+      const url = this.isRaspberryPi() ? this.dockerUrl : this.localUrl;
+      const response = await axios.get(url, {
         withCredentials: true
       });
       return response.data;
@@ -69,5 +71,12 @@ export class ConfigService {
       console.error('Error fetching config:', error);
       throw error;
     }
+  }
+
+  isRaspberryPi(){
+    const userAgent = navigator.userAgent.toLowerCase();
+    // Check for Raspberry keyword in user-agent
+    const isRaspberry = userAgent.includes('raspberry');
+    return isRaspberry;
   }
 }
