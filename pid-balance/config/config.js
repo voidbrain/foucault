@@ -14,6 +14,11 @@ const defaultConfig = {
   },
   incrementDegree: 0,
   heightLevel: 'mid',
+  heightLevels: {
+    low: { basePulseWidth: 500 },
+    mid: { basePulseWidth: 1500 },
+    high: { basePulseWidth: 2500 },
+  },
   isSensorAdjustmentEnabled: true,
   topics: {
     output: {

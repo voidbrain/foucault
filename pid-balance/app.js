@@ -12,6 +12,9 @@ let pidRight;
 let controlLoopInterval = null;
 let topics;
 
+let currentHeight = '';
+let heightLevels 
+
 initializeMQTT();
 
 async function getTiltAngles() {
@@ -44,13 +47,41 @@ async function getTiltAngles() {
 function setMotorSpeeds(leftSpeed, rightSpeed) {
   sendMQTTMessage(topics.output.motorLeft, leftSpeed);
   sendMQTTMessage(topics.output.motorRight, rightSpeed);
+}
 
-  // console.log(topics.output.motorLeft, leftSpeed)
-  // console.log(topics.output.motorLeft, leftSpeed)
+function adjustServos(xAngle) {
+  // Base pulse width for the current height level
+  const basePulseWidth = heightLevels[currentHeight]?.basePulseWidth;
+
+  // Calculate height difference from the tilt angle
+  const heightDifference = xAngle * 0.1;
+  
+  // Adjust left and right pulse widths
+  const leftPulseWidth = Math.max(
+    500,
+    Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
+  );
+  const rightPulseWidth = Math.max(
+    500,
+    Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
+  );
+
+  // Publish servo pulse width values via MQTT
+  sendMQTTMessage(topics.output.servoLeft, {
+    source: "pid",
+    value: leftPulseWidth,
+  });
+  sendMQTTMessage(topics.output.servoRight, {
+    source: "pid",
+    value: rightPulseWidth,
+  });
 }
 
 async function startControlLoop() {
   const config = await getConfig();
+  currentHeight = config.heightLevel;
+  heightLevels = config.heightLevels;
+
   pidLeft = new PIDController(config.pidConfig.Kp, config.pidConfig.Ki, config.pidConfig.Kd);
   pidRight = new PIDController(config.pidConfig.Kp, config.pidConfig.Ki, config.pidConfig.Kd);
 
@@ -66,6 +97,7 @@ async function startControlLoop() {
     const rightOutput = pidRight.compute(0, tiltAngles.yAngle);
 
     setMotorSpeeds(leftOutput, rightOutput);
+    adjustServos(tiltAngles.xAngle);
   }, 100);
 }
 

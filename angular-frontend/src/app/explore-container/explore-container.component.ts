@@ -226,13 +226,13 @@ export class ExploreContainerComponent implements AfterViewInit, OnDestroy {
 
         case this.topics.input["servoLeft"]:
           parsedMessage = JSON.parse(data);
-          this.leftServoPulse = { value: parsedMessage };
+          this.leftServoPulse = parsedMessage;
           console.log(parsedMessage)
           break;
 
         case this.topics.input["servoRight"]:
           parsedMessage = JSON.parse(data);
-          this.rightServoPulse = { value: parsedMessage };
+          this.rightServoPulse = parsedMessage ;
           console.log(parsedMessage)
           break;
         case this.topics.input["console"]:
