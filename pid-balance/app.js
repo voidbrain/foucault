@@ -14,6 +14,7 @@ let topics;
 
 let currentHeight = '';
 let heightLevels 
+let heightAdjustmentInProgress = false;
 
 initializeMQTT();
 
@@ -45,11 +46,13 @@ async function getTiltAngles() {
 }
 
 function setMotorSpeeds(leftSpeed, rightSpeed) {
+  if (heightAdjustmentInProgress) return;
   sendMQTTMessage(topics.output.motorLeft, leftSpeed);
   sendMQTTMessage(topics.output.motorRight, rightSpeed);
 }
 
 function adjustServos(xAngle) {
+  if (heightAdjustmentInProgress) return;
   // Base pulse width for the current height level
   const basePulseWidth = heightLevels[currentHeight]?.basePulseWidth;
 
@@ -184,10 +187,28 @@ function handleStart() {
   console.log("Robot started.");
 }
 
-function handleSetHeight(value) {
-  console.log("Setting height:", value);
-  // Add logic to adjust height here
+function handleSetHeight(height) {
+  heightAdjustmentInProgress = true;
+  if (controlLoopInterval) {
+    clearInterval(controlLoopInterval); // Pause the control loop
+    controlLoopInterval = null;
+  }
+
+  const newIndex = Object.keys(heightLevels).findIndex(key => key === height);
+  const prevIndex = Object.keys(heightLevels).findIndex(key => key === currentHeight);
+  const heightLevelDifference = newIndex - prevIndex;
+  console.log(`Height set to ${height}, previous height ${currentHeight}, difference: ${heightLevelDifference}`);
+  
+  adjustServos(heightLevels[height].bodyAngle);
+  currentHeight = height;
+
+  setTimeout(() => {
+    heightAdjustmentInProgress = false;
+    handleStart(); // Restart the control loop
+  }, 1000); // Cooldown period (1 second)
+  
 }
+
 
 function handleSetPIDParameter(param, value) {
   console.log(`Setting PID parameter ${param}:`, value);
