@@ -61,44 +61,45 @@ function setMotorSpeeds(leftSpeed, rightSpeed) {
   });
 }
 
-// function adjustServos(xAngle) {
-//   if (heightAdjustmentInProgress) return;
+function adjustServos(xAngle) {
+  if (heightAdjustmentInProgress) return;
 
-//   // Calculate height difference from the tilt angle
-//   const heightDifference = +xAngle * 0.1;
+  // Calculate height difference from the tilt angle
+  const heightDifference = +xAngle * 0.1;
+  const basePulseWidth = 1500;
 
-//   // Adjust left and right pulse widths
-//   const leftPulseWidth = Math.max(
-//     500,
-//     Math.min(2500, Math.round(heightDifference * 2000))
-//   );
-//   const rightPulseWidth = Math.max(
-//     500,
-//     Math.min(2500, Math.round(-heightDifference * 2000))
-//   );
-//   // Publish servo pulse width values via MQTT
-//   sendMQTTMessage(topics.output.servoLeft, {
-//     source,
-//     value: leftPulseWidth,
-//   });
-//   sendMQTTMessage(topics.output.servoRight, {
-//     source,
-//     value: rightPulseWidth,
-//   });
-// }
-
-function adjustServos(interpolatedAngle, xAngle) {
-  // Tilt correction: dynamically adjust based on xAngle
-  const tiltCorrection = xAngle * 0.1; // Adjust scale as needed
-
-  // Calculate final servo angles
-  const leftServoAngle = interpolatedAngle || 0 + tiltCorrection;
-  const rightServoAngle = -(interpolatedAngle || 0 + tiltCorrection);
-
-  // Rotate servos to calculated angles
-  rotateServoToAngle(topics.output.servoLeft, leftServoAngle);
-  rotateServoToAngle(topics.output.servoRight, rightServoAngle);
+  // Adjust left and right pulse widths
+  const leftPulseWidth = Math.max(
+    500,
+    Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
+  );
+  const rightPulseWidth = Math.max(
+    500,
+    Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
+  );
+  // Publish servo pulse width values via MQTT
+  sendMQTTMessage(topics.output.servoLeft, {
+    source,
+    value: leftPulseWidth,
+  });
+  sendMQTTMessage(topics.output.servoRight, {
+    source,
+    value: rightPulseWidth,
+  });
 }
+
+// function adjustServos(interpolatedAngle, xAngle) {
+//   // Tilt correction: dynamically adjust based on xAngle
+//   const tiltCorrection = xAngle * 0.1; // Adjust scale as needed
+
+//   // Calculate final servo angles
+//   const leftServoAngle = interpolatedAngle || 0 + tiltCorrection;
+//   const rightServoAngle = -(interpolatedAngle || 0 + tiltCorrection);
+
+//   // Rotate servos to calculated angles
+//   rotateServoToAngle(topics.output.servoLeft, leftServoAngle);
+//   rotateServoToAngle(topics.output.servoRight, rightServoAngle);
+// }
 // Rotate 360-degree servo to a specific angle
 function rotateServoToAngle(servo, angle) {
   // Map angle (0 to 360) to pulse width (500 to 2500 microseconds)
@@ -145,7 +146,7 @@ async function startControlLoop() {
 
       setMotorSpeeds(leftMotorSpeed, rightMotorSpeed);
       const currentAngle = heightLevels[currentHeight];
-      adjustServos(null, tiltAngles.xAngle);
+      adjustServos(tiltAngles.xAngle);
     }
   }, 100);
 }
@@ -331,64 +332,64 @@ async function setup() {
   startControlLoop();
 }
 
-// function handleSetHeight(height) {
-//   heightAdjustmentInProgress = true;
-//   if (controlLoopInterval) {
-//     clearInterval(controlLoopInterval); // Pause the control loop
-//     controlLoopInterval = null;
-//   }
-
-//   const newIndex = Object.keys(heightLevels).findIndex(key => key === height);
-//   const prevIndex = Object.keys(heightLevels).findIndex(key => key === currentHeight);
-//   const heightLevelDifference = newIndex - prevIndex;
-//   console.log(`Height set to ${height}, previous height ${currentHeight}, difference: ${heightLevelDifference}`);
-
-//   adjustServos(heightLevels[height].bodyAngle);
-//   currentHeight = height;
-
-//   setTimeout(() => {
-//     heightAdjustmentInProgress = false;
-//     handleStart();
-//   }, 1000);
-// }
-
-// Function to update motors based on separate outputs for left and right motors
-
-function handleSetHeight(newHeight) {
-  if (heightAdjustmentInProgress) return; // Prevent multiple adjustments at once
+function handleSetHeight(height) {
   heightAdjustmentInProgress = true;
-
   if (controlLoopInterval) {
     clearInterval(controlLoopInterval); // Pause the control loop
     controlLoopInterval = null;
   }
 
-  const newAngle = heightLevels[newHeight]; // Target angle for new height
-  const currentAngle = heightLevels[currentHeight]; // Current angle for the current height
-  const angleDifference = newAngle - currentAngle;
+  const newIndex = Object.keys(heightLevels).findIndex(key => key === height);
+  const prevIndex = Object.keys(heightLevels).findIndex(key => key === currentHeight);
+  const heightLevelDifference = newIndex - prevIndex;
+  console.log(`Height set to ${height}, previous height ${currentHeight}, difference: ${heightLevelDifference}`);
 
-  const steps = 1; // Number of steps to transition
-  const stepSize = angleDifference / steps; // Angle change per step
-  let stepCount = 0;
+  adjustServos(heightLevels[height].bodyAngle);
+  currentHeight = height;
 
-  // Gradual adjustment loop
-  const adjustmentInterval = setInterval(() => {
-    const interpolatedAngle = currentAngle + stepCount * stepSize;
-
-    // Send updated servo angles with tilt correction
-    adjustServos(interpolatedAngle, newAngle);
-
-    stepCount++;
-
-    // Check if adjustment is complete
-    if (stepCount > steps) {
-      clearInterval(adjustmentInterval);
-      currentHeight = newHeight; // Update the current height level
-      heightAdjustmentInProgress = false; // Mark adjustment as complete
-      handleStart(); // Resume control loop
-    }
-  }, 100); // Adjust every 100ms
+  setTimeout(() => {
+    heightAdjustmentInProgress = false;
+    handleStart();
+  }, 1000);
 }
+
+// Function to update motors based on separate outputs for left and right motors
+
+// function handleSetHeight(newHeight) {
+//   if (heightAdjustmentInProgress) return; // Prevent multiple adjustments at once
+//   heightAdjustmentInProgress = true;
+
+//   if (controlLoopInterval) {
+//     clearInterval(controlLoopInterval); // Pause the control loop
+//     controlLoopInterval = null;
+//   }
+
+//   const newAngle = heightLevels[newHeight]; // Target angle for new height
+//   const currentAngle = heightLevels[currentHeight]; // Current angle for the current height
+//   const angleDifference = newAngle - currentAngle;
+
+//   const steps = 1; // Number of steps to transition
+//   const stepSize = angleDifference / steps; // Angle change per step
+//   let stepCount = 0;
+
+//   // Gradual adjustment loop
+//   const adjustmentInterval = setInterval(() => {
+//     const interpolatedAngle = currentAngle + stepCount * stepSize;
+
+//     // Send updated servo angles with tilt correction
+//     adjustServos(interpolatedAngle, newAngle);
+
+//     stepCount++;
+
+//     // Check if adjustment is complete
+//     if (stepCount > steps) {
+//       clearInterval(adjustmentInterval);
+//       currentHeight = newHeight; // Update the current height level
+//       heightAdjustmentInProgress = false; // Mark adjustment as complete
+//       handleStart(); // Resume control loop
+//     }
+//   }, 100); // Adjust every 100ms
+// }
 
 // Example Usage:
 // rotateServoToAngle(90, 50, 180); // Rotate 90 degrees at 50% speed with 180 degrees/second rotation speed
