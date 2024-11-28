@@ -36,12 +36,12 @@ import {
               <div id="motor-content">
                 <span id="left-motor">
                   Left Motor PWM:
-                  <span id="left-motor-value">{{ leftMotorPWM?.value | number:'1.0-0' || '_' }}</span>
+                  <span id="left-motor-value">{{ (leftMotorPWM?.value | number:'1.0-0') || '_' }}</span>
                 </span>
                 <br />
                 <span id="right-motor">
                   Right Motor PWM:
-                  <span id="right-motor-value">{{ rightMotorPWM?.value | number:'1.0-0' || '_' }}</span>
+                  <span id="right-motor-value">{{ (rightMotorPWM?.value | number:'1.0-0') || '_' }}</span>
                 </span>
               </div>
             </ion-col>
@@ -50,12 +50,12 @@ import {
               <div id="servo-content">
                 <span id="left-servo">
                   Left Servo Pulse:
-                  <span id="left-servo-value">{{ leftServoPulse?.value | number:'1.0-0' || '_' }}</span>µs
+                  <span id="left-servo-value">{{ (leftServoPulse?.value | number:'1.0-0') || '_' }}</span>µs
                 </span>
                 <br />
                 <span id="right-servo">
                   Right Servo Pulse:
-                  <span id="right-servo-value">{{ rightServoPulse?.value | number:'1.0-0' || '_' }}</span>µs
+                  <span id="right-servo-value">{{ (rightServoPulse?.value | number:'1.0-0') || '_' }}</span>µs
                 </span>
               </div>
             </ion-col>
