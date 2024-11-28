@@ -89,11 +89,11 @@ function setMotorSpeeds(leftSpeed, rightSpeed) {
 
 function adjustServos(interpolatedAngle, xAngle) {
   // Tilt correction: dynamically adjust based on xAngle
-  const tiltCorrection = xAngle * 10; // Adjust scale as needed
+  const tiltCorrection = xAngle * 0.1; // Adjust scale as needed
 
   // Calculate final servo angles
-  const leftServoAngle = interpolatedAngle + tiltCorrection;
-  const rightServoAngle = interpolatedAngle - tiltCorrection;
+  const leftServoAngle = interpolatedAngle || 0 + tiltCorrection;
+  const rightServoAngle = -(interpolatedAngle || 0 + tiltCorrection);
 
   // Rotate servos to calculated angles
   rotateServoToAngle(topics.output.servoLeft, leftServoAngle);
@@ -102,7 +102,11 @@ function adjustServos(interpolatedAngle, xAngle) {
 // Rotate 360-degree servo to a specific angle
 function rotateServoToAngle(servo, angle) {
   // Map angle (0 to 360) to pulse width (500 to 2500 microseconds)
-  const pulseWidth = Math.round(500 + (angle / 360) * 2000);
+  
+  angle = Math.max(-180, Math.min(180, angle));
+
+  // Map angle to pulse width
+  const pulseWidth = Math.round(1500 + (angle / 180) * 1000);
 
   // Send pulse width to the servo
   sendMQTTMessage(servo, {
@@ -140,7 +144,8 @@ async function startControlLoop() {
       const rightMotorSpeed = pitchCorrection + rollCorrection;
 
       setMotorSpeeds(leftMotorSpeed, rightMotorSpeed);
-      adjustServos(tiltAngles.xAngle);
+      const currentAngle = heightLevels[currentHeight];
+      adjustServos(null, tiltAngles.xAngle);
     }
   }, 100);
 }
@@ -273,7 +278,6 @@ function handleWalk(direction) {
 
 function handleSetSensorAdj(value) {
   enableSensorAdjustments = value === "true" ? true : false;
-  console.log(enableSensorAdjustments);
   if (enableSensorAdjustments === false) {
     sendMQTTMessage(topics.output.servoRight, { value: 1500, source }); // Stop servos
     sendMQTTMessage(topics.output.servoLeft, { value: 1500, source });
@@ -314,7 +318,6 @@ function pidControl(currentAngle, previousError, integral, isLeftMotor) {
 }
 
 function handleSetIncrementDegree(value) {
-  console.log(value);
   if (!isNaN(value)) {
     incrementDegree = value;
     console.log(`Increment set to ${value}`);
@@ -360,18 +363,11 @@ function handleSetHeight(newHeight) {
     controlLoopInterval = null;
   }
 
-  // Map height levels to angles
-  const heightLevels = {
-    low: 45, // Low height angle
-    mid: 90, // Mid height angle
-    high: 135, // High height angle
-  };
-
   const newAngle = heightLevels[newHeight]; // Target angle for new height
   const currentAngle = heightLevels[currentHeight]; // Current angle for the current height
   const angleDifference = newAngle - currentAngle;
 
-  const steps = 10; // Number of steps to transition
+  const steps = 1; // Number of steps to transition
   const stepSize = angleDifference / steps; // Angle change per step
   let stepCount = 0;
 
