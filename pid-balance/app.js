@@ -61,52 +61,65 @@ function setMotorSpeeds(leftSpeed, rightSpeed) {
   });
 }
 
+// function adjustServos(xAngle) {
+//   if (heightAdjustmentInProgress) return;
+
+//   // Calculate height difference from the tilt angle
+//   const heightDifference = +xAngle * 0.1;
+//   const basePulseWidth = 1500;
+
+//   // Adjust left and right pulse widths
+//   const leftPulseWidth = Math.max(
+//     500,
+//     Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
+//   );
+//   const rightPulseWidth = Math.max(
+//     500,
+//     Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
+//   );
+//   // Publish servo pulse width values via MQTT
+//   sendMQTTMessage(topics.output.servoLeft, {
+//     source,
+//     value: leftPulseWidth,
+//   });
+//   sendMQTTMessage(topics.output.servoRight, {
+//     source,
+//     value: rightPulseWidth,
+//   });
+// }
+
+// Current angles of the servos
+let currentLeftServoAngle = 0;
+let currentRightServoAngle = 0;
+
 function adjustServos(xAngle) {
   if (heightAdjustmentInProgress) return;
 
-  // Calculate height difference from the tilt angle
-  const heightDifference = +xAngle * 0.1;
-  const basePulseWidth = 1500;
+  // Tilt correction based on xAngle
+  const tiltCorrection = xAngle * 0.1; // Adjust scale as needed
 
-  // Adjust left and right pulse widths
-  const leftPulseWidth = Math.max(
-    500,
-    Math.min(2500, Math.round(basePulseWidth + heightDifference * 2000))
-  );
-  const rightPulseWidth = Math.max(
-    500,
-    Math.min(2500, Math.round(basePulseWidth + -heightDifference * 2000))
-  );
-  // Publish servo pulse width values via MQTT
-  sendMQTTMessage(topics.output.servoLeft, {
-    source,
-    value: leftPulseWidth,
-  });
-  sendMQTTMessage(topics.output.servoRight, {
-    source,
-    value: rightPulseWidth,
-  });
+  // Calculate desired servo angles
+  const desiredLeftServoAngle = currentLeftServoAngle + tiltCorrection;
+  const desiredRightServoAngle = currentRightServoAngle - tiltCorrection;
+
+  // Apply differences to rotate servos to the desired angles
+  const leftAngleDiff = desiredLeftServoAngle - currentLeftServoAngle;
+  const rightAngleDiff = desiredRightServoAngle - currentRightServoAngle;
+
+  // Rotate servos by the calculated deltas
+  rotateServoToAngle(topics.output.servoLeft, currentLeftServoAngle + leftAngleDiff);
+  rotateServoToAngle(topics.output.servoRight, currentRightServoAngle + rightAngleDiff);
+
+  // Update current angles
+  currentLeftServoAngle += leftAngleDiff;
+  currentRightServoAngle += rightAngleDiff;
 }
 
-// function adjustServos(interpolatedAngle, xAngle) {
-//   // Tilt correction: dynamically adjust based on xAngle
-//   const tiltCorrection = xAngle * 0.1; // Adjust scale as needed
-
-//   // Calculate final servo angles
-//   const leftServoAngle = interpolatedAngle || 0 + tiltCorrection;
-//   const rightServoAngle = -(interpolatedAngle || 0 + tiltCorrection);
-
-//   // Rotate servos to calculated angles
-//   rotateServoToAngle(topics.output.servoLeft, leftServoAngle);
-//   rotateServoToAngle(topics.output.servoRight, rightServoAngle);
-// }
-// Rotate 360-degree servo to a specific angle
 function rotateServoToAngle(servo, angle) {
-  // Map angle (0 to 360) to pulse width (500 to 2500 microseconds)
-  
+  // Constrain angle to valid range for 360-degree servos
   angle = Math.max(-180, Math.min(180, angle));
 
-  // Map angle to pulse width
+  // Map angle to pulse width (500 to 2500 microseconds)
   const pulseWidth = Math.round(1500 + (angle / 180) * 1000);
 
   // Send pulse width to the servo
@@ -115,6 +128,9 @@ function rotateServoToAngle(servo, angle) {
     value: pulseWidth,
   });
 }
+
+
+
 
 async function startControlLoop() {
   const config = await getConfig();
@@ -333,6 +349,7 @@ async function setup() {
 }
 
 function handleSetHeight(height) {
+  if (heightAdjustmentInProgress) return; // Prevent multiple adjustments at once
   heightAdjustmentInProgress = true;
   if (controlLoopInterval) {
     clearInterval(controlLoopInterval); // Pause the control loop
@@ -352,47 +369,6 @@ function handleSetHeight(height) {
     handleStart();
   }, 1000);
 }
-
-// Function to update motors based on separate outputs for left and right motors
-
-// function handleSetHeight(newHeight) {
-//   if (heightAdjustmentInProgress) return; // Prevent multiple adjustments at once
-//   heightAdjustmentInProgress = true;
-
-//   if (controlLoopInterval) {
-//     clearInterval(controlLoopInterval); // Pause the control loop
-//     controlLoopInterval = null;
-//   }
-
-//   const newAngle = heightLevels[newHeight]; // Target angle for new height
-//   const currentAngle = heightLevels[currentHeight]; // Current angle for the current height
-//   const angleDifference = newAngle - currentAngle;
-
-//   const steps = 1; // Number of steps to transition
-//   const stepSize = angleDifference / steps; // Angle change per step
-//   let stepCount = 0;
-
-//   // Gradual adjustment loop
-//   const adjustmentInterval = setInterval(() => {
-//     const interpolatedAngle = currentAngle + stepCount * stepSize;
-
-//     // Send updated servo angles with tilt correction
-//     adjustServos(interpolatedAngle, newAngle);
-
-//     stepCount++;
-
-//     // Check if adjustment is complete
-//     if (stepCount > steps) {
-//       clearInterval(adjustmentInterval);
-//       currentHeight = newHeight; // Update the current height level
-//       heightAdjustmentInProgress = false; // Mark adjustment as complete
-//       handleStart(); // Resume control loop
-//     }
-//   }, 100); // Adjust every 100ms
-// }
-
-// Example Usage:
-// rotateServoToAngle(90, 50, 180); // Rotate 90 degrees at 50% speed with 180 degrees/second rotation speed
 
 initializeMQTT();
 setup();
