@@ -66,12 +66,26 @@ process.on("SIGINT", () => {
     }
   }, 1000);
 
+  let mockAngleStep = 0;
 
-// Function to simulate reading accelerometer data (mock data)
-function mockAccelerometerData() {
-  return Buffer.from([0x10, 0x00, 0x20, 0x00, 0x30, 0x00]);
-}
-
+  function mockAccelerometerData() {
+    // Generate periodic xAngle (pitch) from -10 to +10
+    const pitch = 10 * Math.sin(mockAngleStep); // Scale sine wave to [-10, 10]
+    mockAngleStep += Math.PI / 30; // Increment step for smooth oscillation (adjust the divisor for speed)
+  
+    // Convert pitch back to accelerometer raw data
+    const scaleFactor = 16384;
+    const accelX = Math.round(scaleFactor * Math.sin((pitch * Math.PI) / 180)); // Simulate X based on pitch
+    const accelY = 0; // Assume constant for simplicity
+    const accelZ = Math.round(scaleFactor * Math.cos((pitch * Math.PI) / 180)); // Z varies inversely with pitch
+  
+    // Return mock data as Buffer
+    const buffer = Buffer.alloc(6);
+    buffer.writeInt16LE(accelX, 0); // Write X
+    buffer.writeInt16LE(accelY, 2); // Write Y
+    buffer.writeInt16LE(accelZ, 4); // Write Z
+    return buffer;
+  }
 // Function to read accelerometer data (mock or real)
 function readAccelerometer() {
   return new Promise((resolve, reject) => {
